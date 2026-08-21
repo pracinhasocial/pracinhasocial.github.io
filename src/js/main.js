@@ -370,6 +370,8 @@ function showFeedView() {
     if (publicProfileView) publicProfileView.classList.add('hidden');
     const adminView = document.getElementById('admin-view');
     if (adminView) adminView.classList.add('hidden');
+    const pageView = document.getElementById('page-view');
+    if (pageView) pageView.classList.add('hidden');
     mainContent.classList.remove('settings-mode');
     mainContent.style.padding = '';
     if (mainScreen) mainScreen.classList.remove('settings-mode');
@@ -7986,6 +7988,8 @@ function showCantinhoView() {
     if (publicProfileView) publicProfileView.classList.add('hidden');
     const adminView = document.getElementById('admin-view');
     if (adminView) adminView.classList.add('hidden');
+    const pageView = document.getElementById('page-view');
+    if (pageView) pageView.classList.add('hidden');
     if (mainScreen) mainScreen.classList.remove('settings-mode');
     mainContent.classList.remove('settings-mode');
     mainContent.style.padding = '';
@@ -8972,6 +8976,17 @@ function showPageView() {
     document.getElementById('cantinho-view').classList.add('hidden');
     document.getElementById('public-profile-view').classList.add('hidden');
     document.getElementById('admin-view').classList.add('hidden');
+
+    // Limpar conteúdo da page view antes de mostrar
+    const pageContent = document.getElementById('page-content');
+    const pageTitle = document.getElementById('page-title');
+    const breadcrumb = document.getElementById('page-breadcrumb');
+    const sidebarMenu = document.getElementById('page-sidebar-menu');
+    
+    if (pageContent) pageContent.innerHTML = '';
+    if (pageTitle) pageTitle.textContent = '';
+    if (breadcrumb) breadcrumb.innerHTML = '';
+    if (sidebarMenu) sidebarMenu.classList.add('hidden');
 
     // Mostrar page view
     const pageView = document.getElementById('page-view');
