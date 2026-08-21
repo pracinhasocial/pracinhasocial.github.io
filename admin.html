@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pracinha - Administração</title>
+    <link rel="stylesheet" href="src/css/main.css">
+    <link rel="stylesheet" href="src/css/admin.css">
+</head>
+<body class="admin-page">
+    <main class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <p class="admin-eyebrow">Pracinha</p>
+                <h1>Painel administrativo</h1>
+            </div>
+            <button class="btn btn-secondary btn-small" id="admin-logout" type="button">Sair</button>
+        </header>
+
+        <section class="admin-toolbar">
+            <div>
+                <h2>Pedidos de acesso</h2>
+                <p id="admin-user-label">Verificando permissões...</p>
+            </div>
+            <button class="btn btn-primary btn-small" id="admin-refresh" type="button">Atualizar</button>
+        </section>
+
+        <div id="admin-feedback" class="admin-feedback hidden" role="status"></div>
+        <section id="admin-requests" class="admin-requests" aria-live="polite">
+            <p class="admin-loading">Carregando pedidos...</p>
+        </section>
+    </main>
+    <script type="module" src="src/js/admin.js"></script>
+</body>
+</html>

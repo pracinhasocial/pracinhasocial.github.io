@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚧 Em Manutenção - Pracinha</title>
+    <link rel="stylesheet" href="src/css/main.css">
+    <script>
+        // Sincronização de tema
+        (function() {
+            const theme = localStorage.getItem('pracinha-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div id="header-container"></div>
+
+        <!-- Conteúdo Central -->
+        <main class="main-content">
+            <div class="maintenance-container">
+                <div class="maintenance-card">
+                    <div class="maintenance-icon">⚠️</div>
+                    <h1 class="maintenance-title">Ei, vai com calma!</h1>
+                    <p class="maintenance-text">
+                        Algumas partes da Pracinha<br>ainda estão em construção. 🛠️<br><br>
+                        Então por favor, cuidado com<br> possíveis caminhos quebrados.
+                    </p>
+                    <div class="maintenance-emoji">🔨🚧👷‍♂️</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="/#">Início</a>
+                    <span class="dot-separator">•</span>
+                    <a href="cuidado.html">Regras</a>
+                    <span class="dot-separator">•</span>
+                    <a href="cuidado.html">Privacidade</a>
+                </div>
+                <p class="footer-attribution">Feito com <span class="heart">❤️</span> por Juan Rocha.</p>
+                <a href="https://neocities.org/site/pracinha" class="domain-link" target="_blank">pracinha.neocities.org</a>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { injectHeader } from './src/components/header.js';
+
+        // Injetar header (sem inicialização complexa para página simples)
+        document.addEventListener('DOMContentLoaded', async () => {
+            await injectHeader('header-container', () => {
+                // Inicialização básica para página de manutenção
+                const themeToggleMain = document.getElementById('theme-toggle-main');
+                if (themeToggleMain) {
+                    themeToggleMain.addEventListener('click', () => {
+                        const currentTheme = document.documentElement.getAttribute('data-theme');
+                        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        localStorage.setItem('pracinha-theme', newTheme);
+                        themeToggleMain.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+                    });
+                }
+
+                // Atualizar ícone do tema
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const themeIcon = currentTheme === 'dark' ? '☀️' : '🌙';
+                if (themeToggleMain) themeToggleMain.textContent = themeIcon;
+            });
+        });
+    </script>
+</body>
+</html>

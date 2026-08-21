@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Conta - Pracinha</title>
+    <link rel="stylesheet" href="src/css/main.css">
+</head>
+<body>
+    <div class="landing-container">
+        <div class="landing-content">
+            <div class="landing-header">
+                <h1 class="landing-title">Pracinha</h1>
+                <p class="landing-subtitle">Recuperar Conta</p>
+            </div>
+
+            <div class="auth-form-container">
+                <div id="recover-account-form">
+                    <p class="auth-hint">Clique abaixo para recuperar sua conta. Esta ação só é possível dentro do período de 7 dias após a deleção.</p>
+                    <button type="button" class="btn btn-primary btn-full" id="recover-account-btn">Recuperar Conta</button>
+                </div>
+
+                <div id="recover-success" class="hidden">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
+                        <h3>Conta Recuperada!</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                            Sua conta foi recuperada com sucesso. Você pode fazer login agora.
+                        </p>
+                        <a href="index.html" class="btn btn-primary btn-full">Ir para Login</a>
+                    </div>
+                </div>
+
+                <div id="recover-error" class="hidden">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+                        <h3>Erro ao Recuperar</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                            O link de recuperação é inválido ou expirou. Se ainda estiver dentro do período de 7 dias, solicite um novo link de recuperação.
+                        </p>
+                        <a href="index.html" class="btn btn-secondary btn-full">Voltar para Pracinha</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/js/recover-account.js"></script>
+</body>
+</html>

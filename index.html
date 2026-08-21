@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP removida - Neocities pode ter suas próprias configurações de segurança -->
+    <title>Pracinha</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Bagel+Fat+One&family=Baloo+Thambi+2:wght@400;500;600;700;800&family=Bangers&family=Betania+Patmos&family=Bitcount+Prop+Single&family=Cherry+Bomb+One&family=Chicle&family=Cinzel:wght@400;500;600;700;900&family=Comic+Relief&family=Emblema+One&family=Elsie:wght@400;900&family=Gamja+Flower&family=Google+Sans:wght@400;500;700&family=Handlee&family=Happy+Monkey&family=Lekton:wght@300;400;700&family=Mea+Culpa&family=Rock+Salt&family=Sour+Gummy&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="src/css/main.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1c913f">
+    <script src="https://w.soundcloud.com/player/api.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        // Sincronização pré-render para evitar piscar tema ou telas (landing vs feed)
+        (function() {
+            const theme = localStorage.getItem('pracinha-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            // Remover o estilo temporário de pré-renderização imediatamente
+            // O JavaScript principal (main.js) vai decidir qual tela mostrar
+            const tempStyle = document.getElementById('temp-loading-style');
+            if (tempStyle) {
+                tempStyle.remove();
+            }
+        })();
+    </script>
+</head>
+
+<body>
+    <!-- Barra de instalação PWA -->
+    <div id="pwa-install-bar" class="pwa-install-bar hidden">
+        <div class="pwa-install-content">
+            <span class="pwa-install-text" data-i18n="pwa.installText">Instale o app para uma melhor experiência!</span>
+            <button class="pwa-install-btn" id="pwa-install-btn" data-i18n="pwa.installBtn">Instalar</button>
+            <button class="pwa-install-close" id="pwa-install-close">✕</button>
+        </div>
+    </div>
+
+    <div id="app">
+        <!-- Landing Page -->
+        <div id="landing-screen" class="screen hidden">
+            <div class="landing-container">
+                <div class="landing-header">
+                    <button class="language-toggle" id="language-toggle">🇧🇷 PT</button>
+                    <button class="theme-toggle" id="theme-toggle">🌙</button>
+                </div>
+                <div class="landing-content">
+                    <div class="logo">
+                        <img src="src/components/logo.webp" alt="Pracinha Logo" class="logo-img">
+                        <h1 class="logo-text">Pracinha</h1>
+                    </div>
+                    <div class="bio-section">
+                        <h2 class="bio-title" data-i18n="landing.title">Um mini-espaço social</h2>
+                        <p class="bio-text" data-i18n="landing.bio">A Pracinha é um lugar onde conversas acontecem
+                            naturalmente. Sem seguidores, sem algoritmos, sem pressão. Apenas pessoas compartilhando
+                            assuntos que desaparecem após 7 dias.</p>
+                    </div>
+                    <div class="auth-section">
+                        <div class="auth-buttons">
+                            <button class="btn btn-primary btn-large" id="btn-login"
+                                data-i18n="btn.login">Entrar</button>
+                            <button class="btn btn-secondary btn-large" id="btn-request-access" type="button">Pedir acesso</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de login -->
+        <div id="login-screen" class="screen hidden">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <button class="theme-toggle" id="theme-toggle-login">🌙</button>
+                </div>
+                <div class="logo">
+                    <img src="src/components/logo.webp" alt="Pracinha Logo" class="logo-img">
+                    <h1 class="logo-text">Pracinha</h1>
+                </div>
+                <form id="login-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="login-email" data-i18n="label.email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password" data-i18n="label.password">Senha</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" data-i18n="btn.login">Entrar</button>
+                    <div class="auth-links">
+                        <a href="#" id="forgot-password" data-i18n="link.forgotPassword">Esqueci a senha</a>
+                        <a href="#" id="login-request-access">Pedir acesso</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tela de cadastro -->
+        <div id="signup-screen" class="screen hidden">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <button class="theme-toggle" id="theme-toggle-signup">🌙</button>
+                </div>
+                <div class="logo">
+                    <img src="src/components/logo.webp" alt="Pracinha Logo" class="logo-img">
+                    <h1 class="logo-text">Pracinha</h1>
+                </div>
+                <form id="signup-form" class="auth-form">
+                    <p class="invite-required-message" id="invite-required-message">Você está entrando por um convite válido da Pracinha.</p>
+                    <div class="form-group">
+                        <label for="signup-apelido">Apelido</label>
+                        <input type="text" id="signup-apelido" placeholder="Como você quer ser chamado?" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-name" data-i18n="label.name">Nome</label>
+                        <input type="text" id="signup-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-username" data-i18n="label.username">@Usuário</label>
+                        <input type="text" id="signup-username" placeholder="@usuario" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email" data-i18n="label.email">Email</label>
+                        <input type="email" id="signup-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password" data-i18n="label.password">Senha</label>
+                        <input type="password" id="signup-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-confirm-password" data-i18n="label.confirmPassword">Confirmar senha</label>
+                        <input type="password" id="signup-confirm-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <div class="checkbox-wrapper-2">
+                                <input type="checkbox" id="signup-terms" class="ikxBAC" required>
+                            </div>
+                            <span data-i18n="label.terms">Aceito os termos de uso</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" data-i18n="btn.signup">Criar conta</button>
+                    <div class="auth-links">
+                        <a href="#" id="go-to-login" data-i18n="link.haveAccount">Já tenho conta</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tela principal (Pracinha) -->
+        <div id="main-screen" class="screen hidden">
+            <div id="header-container"></div>
+
+            <main class="main-content" id="main-content">
+                <!-- Vista do Feed (3 colunas) -->
+                <div id="feed-view" class="feed-view hidden">
+                    <!-- Coluna Esquerda -->
+                    <aside class="sidebar-left">
+                        <!-- Barra para postar assunto -->
+                        <div class="post-assunto">
+                            <div class="post-assunto-header">
+                                <div class="tag-dropdown" id="tag-dropdown">
+                                    <button type="button" class="tag-trigger" id="tag-switch" data-tag="">escolha uma tag</button>
+                                    <div class="tag-menu" role="menu" id="tag-menu">
+                                        <div class="tag-options-grid" id="tag-options-grid">
+                                            <button type="button" class="tag-option" data-tag="">Sem tag</button>
+                                            <!-- Opções serão preenchidas dinamicamente via JavaScript -->
+                                        </div>
+                                        <div class="tag-pagination" id="tag-pagination">
+                                            <button type="button" class="tag-nav-btn" id="tag-prev-btn" disabled>←</button>
+                                            <span class="tag-page-info" id="tag-page-info">1 / 1</span>
+                                            <button type="button" class="tag-nav-btn" id="tag-next-btn" disabled>→</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea id="assunto-text" class="assunto-input"
+                                placeholder="O que você quer jogar na conversa?" maxlength="280"
+                                data-i18n-placeholder="placeholder.assunto"></textarea>
+                            <input type="hidden" id="assunto-poll-data" value="">
+                            <div class="assunto-counter" id="assunto-counter" aria-live="polite">280</div>
+                            <div class="composer-image-preview hidden" id="composer-image-preview">
+                                <img src="" alt="Preview da imagem" id="composer-preview-img">
+                                <button type="button" class="btn-remove-preview" id="btn-remove-preview" title="Remover imagem">&times;</button>
+                            </div>
+                            <div class="assunto-actions">
+                                <div class="media-attachments">
+                                    <button type="button" class="attachment-btn" title="Adicionar Imagem"
+                                        aria-label="Adicionar imagem" id="btn-add-assunto-imagem">
+                                        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="1.5" aria-hidden="true">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                            <polyline points="21 15 16 10 5 21"></polyline>
+                                        </svg>
+                                    </button>
+                                    <input type="file" id="assunto-imagem-upload" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden">
+                                    <button type="button" class="attachment-btn emoji-picker-btn"
+                                        title="Adicionar Emoji" data-target="assunto-text" aria-label="Adicionar emoji">
+                                        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="1.5" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="attachment-btn" title="Mais opções"
+                                        aria-label="Mais opções">
+                                        <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="1.5" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="1"></circle>
+                                            <circle cx="19" cy="12" r="1"></circle>
+                                            <circle cx="5" cy="12" r="1"></circle>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <select id="assunto-tag" class="tag-select hidden">
+                                    <option value="">Sem tag</option>
+                                    <!-- Opções serão preenchidas dinamicamente via JavaScript -->
+                                </select>
+                                <button class="btn btn-primary btn-small" id="btn-postar-assunto"
+                                    data-i18n="btn.post">Jogar
+                                    assunto</button>
+                            </div>
+                        </div>
+
+                        <!-- Bloco Assuntos fixados -->
+                        <div class="sidebar-card pinned-topics-card">
+                            <h3 class="card-title" data-i18n="sidebar.pinnedTopics">Assuntos fixados <span class="pinned-count"
+                                    id="right-profile-pinned-count">(0/3)</span></h3>
+                            <ul class="pinned-list" id="right-profile-pinned-list">
+                                <li class="pinned-item">
+                                    <span class="pinned-title">Carregando...</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Bloco X pessoas na pracinha agora -->
+                        <div class="sidebar-card online-visitors-card">
+                            <div class="card-header-row">
+                                <span class="status-dot green"></span>
+                                <h3 class="card-title"><span class="count-active" id="active-count-text">23</span>
+                                    <span data-i18n="sidebar.onlineNow">pessoas estão agora na pracinha</span></h3>
+                            </div>
+                            <div class="visitors-list" id="online-visitors-list">
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #e1dcd6;">A</div>
+                                </button>
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #dcd6e1;">J</div>
+                                </button>
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #d6e1dc;">L</div>
+                                </button>
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #e1d6d6;">P</div>
+                                </button>
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #e1e1d6;">M</div>
+                                </button>
+                            </div>
+                            <button class="btn-text-link" id="btn-ver-todos-visitantes" data-i18n="sidebar.seeAll">Ver todos</button>
+                        </div>
+
+                        <!-- Bloco Assuntos de hoje -->
+                        <div class="sidebar-card tags-card">
+                            <h3 class="card-title" data-i18n="sidebar.todayTopics">Assuntos de hoje</h3>
+                            <div class="tags-container" id="sidebar-tags-container">
+                                <button class="tag-btn active" data-tag="all">Todos</button>
+                                <!-- Tags serão preenchidas dinamicamente via JavaScript -->
+                            </div>
+                            <button class="btn-text-link" id="btn-ver-todos-assuntos" data-i18n="sidebar.seeAll">Ver todos os assuntos</button>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="sidebar-card">
+                            <footer class="sidebar-footer">
+                                <div class="footer-links">
+                                    <a href="#/page/sobre">Sobre a Pracinha</a>
+                                    <span class="dot-separator">•</span>
+                                    <a href="#/page/regras">Regras</a>
+                                    <span class="dot-separator">•</span>
+                                    <a href="#/page/privacidade">Privacidade</a>
+                                </div>
+                                <div class="footer-language-toggle">
+                                    <button type="button" class="lang-toggle-btn" id="lang-toggle-footer">🇧🇷 PT</button>
+                                </div>
+                                <p class="footer-attribution">Feito com <span class="heart">❤️</span> por Juan Rocha.</p>
+                                <a href="https://neocities.org/site/pracinha" class="domain-link"
+                                    target="_blank">pracinha.neocities.org</a>
+                            </footer>
+                        </div>
+                    </aside>
+
+                    <!-- Coluna Central (Feed) -->
+                    <div class="feed">
+
+                        <!-- Anúncios Fixados do Admin -->
+                        <div id="admin-anuncios-fixados" class="admin-anuncios-fixados hidden">
+                            <!-- Anúncios fixados serão carregados aqui -->
+                        </div>
+
+                        <!-- Anúncio Completo (expandido) -->
+                        <div id="admin-anuncio-completo" class="admin-anuncio-completo hidden">
+                            <button class="admin-anuncio-close" id="admin-anuncio-close">✕</button>
+                            <div class="admin-anuncio-header">
+                                <div class="admin-anuncio-emoji-large" id="admin-anuncio-emoji-large">📢</div>
+                                <h3 class="admin-anuncio-titulo-large" id="admin-anuncio-titulo-large">Título</h3>
+                            </div>
+                            <div class="admin-anuncio-conteudo" id="admin-anuncio-conteudo">
+                                <!-- Conteúdo do anúncio será carregado aqui -->
+                            </div>
+                        </div>
+
+                        <div class="feed-filters">
+                            <button class="filter-btn active" type="button" data-content-filter="all" data-i18n="feed.filter.all">Todos</button>
+
+                            <div class="feed-filter-group">
+                                <button class="filter-btn feed-filter-trigger" type="button" data-content-filter="language" aria-expanded="false" data-i18n="feed.filter.language">Idioma</button>
+                                <div class="feed-filter-menu" role="menu">
+                                    <button class="feed-filter-option active" type="button" data-language-filter="all">Todos</button>
+                                    <button class="feed-filter-option" type="button" data-language-filter="pt-BR">Português</button>
+                                    <button class="feed-filter-option" type="button" data-language-filter="en">Inglês</button>
+                                </div>
+                            </div>
+
+                            <div class="feed-filter-group">
+                                <button class="filter-btn feed-filter-trigger" type="button" data-content-filter="posts" aria-expanded="false" data-i18n="feed.filter.posts">Assuntos</button>
+                                <div class="feed-filter-menu" role="menu">
+                                    <button class="feed-filter-option active" type="button" data-tag-filter="all">Todos</button>
+                                    <div id="feed-tag-filter-options">
+                                        <!-- Opções de tags serão preenchidas dinamicamente via JavaScript -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="feed-filter-group">
+                                <button class="filter-btn feed-filter-trigger" type="button" data-content-filter="status" aria-expanded="false" data-i18n="feed.filter.status">Status</button>
+                                <div class="feed-filter-menu" role="menu">
+                                    <button class="feed-filter-option active" type="button" data-status-filter="all" data-i18n="feed.filter.all">Todos</button>
+                                    <button class="feed-filter-option" type="button" data-status-filter="listening" data-i18n="feed.filter.listening">🎧 Ouvindo</button>
+                                    <button class="feed-filter-option" type="button" data-status-filter="eating" data-i18n="feed.filter.eating">🍽️ Comendo</button>
+                                    <button class="feed-filter-option" type="button" data-status-filter="reading" data-i18n="feed.filter.reading">📚 Lendo</button>
+                                    <button class="feed-filter-option" type="button" data-status-filter="watching" data-i18n="feed.filter.watching">📺 Assistindo</button>
+                                    <button class="feed-filter-option" type="button" data-status-filter="doing" data-i18n="feed.filter.doing">🔨 Fazendo</button>
+                                    <button class="feed-filter-option" type="button" data-status-filter="thinking" data-i18n="feed.filter.thinking">💭 Pensando</button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Avisos do Administrador -->
+                        <div id="admin-avisos" class="admin-avisos hidden">
+                            <!-- Avisos serão carregados aqui -->
+                        </div>
+
+                        <div id="feed-content" class="feed-content">
+                            <!-- Assuntos serão carregados aqui -->
+                        </div>
+                    </div>
+
+                    <!-- Coluna Direita (Meu Cantinho) -->
+                    <aside class="sidebar-right">
+                        <!-- Bloco Player de música -->
+                        <div class="sidebar-card music-player-card hidden" id="music-player-card">
+                            <div class="music-player">
+                                <div class="music-controls">
+                                    <button class="control-btn" id="btn-prev" title="Anterior">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="control-btn play-btn" id="btn-play">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="play-icon">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="pause-icon" class="hidden">
+                                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                        </svg>
+                                        <div class="comic-tooltip" id="music-tooltip">
+                                            <div class="comic-tooltip-text">Nome da música</div>
+                                        </div>
+                                    </button>
+                                    <button class="control-btn" id="btn-next" title="Próximo">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="control-btn hidden" id="btn-shuffle" title="Aleatório">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+                                        </svg>
+                                    </button>
+                                    <div class="volume-control">
+                                        <button class="control-btn volume-btn" id="btn-volume" title="Volume">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="volume-icon">
+                                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                                            </svg>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="mute-icon" class="hidden">
+                                                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                                            </svg>
+                                        </button>
+                                        <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.01" value="1" aria-label="Controle de volume">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bloco Meu Cantinho -->
+                        <div id="feed-profile-card-container"></div>
+
+                        <!-- Itens Status -->
+                        <div class="sidebar-card">
+                            <div class="profile-status-items" id="right-profile-status-list"></div>
+                        </div>
+
+                        <!-- Bloco Minhas fotos -->
+                        <div class="sidebar-card user-photos-card">
+                            <h3 class="card-title">Minhas fotos <span class="photos-count"
+                                    id="right-profile-photos-count">(6/6)</span></h3>
+                            <div class="photos-grid" id="right-profile-photos-grid">
+                                <div class="grid-photo-placeholder"></div>
+                                <div class="grid-photo-placeholder"></div>
+                                <div class="grid-photo-placeholder"></div>
+                                <div class="grid-photo-placeholder"></div>
+                                <div class="grid-photo-placeholder"></div>
+                                <div class="grid-photo-placeholder"></div>
+                            </div>
+                            <input type="file" id="right-profile-photo-upload" class="hidden"
+                                accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+                            <button class="btn-text-link" id="btn-add-photo-right">Adicionar foto</button>
+                        </div>
+                    </aside>
+                </div>
+
+                <!-- Vista de Admin -->
+                <div id="admin-view" class="admin-view hidden">
+                    <aside class="sidebar-left">
+                        <div class="sidebar-card admin-nav-card">
+                            <h2 class="sidebar-card-title">Painel Admin</h2>
+                            <nav class="admin-nav">
+                                <button class="admin-nav-btn active" data-admin-section="dashboard">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="7" height="7"></rect>
+                                        <rect x="14" y="3" width="7" height="7"></rect>
+                                        <rect x="14" y="14" width="7" height="7"></rect>
+                                        <rect x="3" y="14" width="7" height="7"></rect>
+                                    </svg>
+                                    Dashboard
+                                </button>
+                                <button class="admin-nav-btn" data-admin-section="users">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                    </svg>
+                                    Usuários
+                                </button>
+                                <button class="admin-nav-btn" data-admin-section="storage">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    Storage
+                                </button>
+                                <button class="admin-nav-btn" data-admin-section="tags">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                    </svg>
+                                    Tags
+                                </button>
+                                <button class="admin-nav-btn admin-only" data-admin-section="roles">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                    Roles
+                                </button>
+                                <button class="admin-nav-btn" data-admin-section="anuncios">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 5.882V19.24a1.76 1.76 0 0 1-3.417.592l-2.147-6.15M18 13a3 3 0 1 0 0-6 3 3 0 1 0 0 6zm-9 0a3 3 0 1 0 0-6 3 3 0 1 0 0 6zm-9 0a3 3 0 1 0 0-6 3 3 0 1 0 0 6z"></path>
+                                    </svg>
+                                    Anúncios
+                                </button>
+                                <button class="admin-nav-btn" data-admin-section="paginas">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10 9 9 9 8 9"></polyline>
+                                    </svg>
+                                    Páginas
+                                </button>
+                                <button class="admin-nav-btn" data-admin-section="access">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                                        <polyline points="10 17 15 12 10 7"></polyline>
+                                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                                    </svg>
+                                    Acessos
+                                </button>
+                            </nav>
+                        </div>
+                    </aside>
+
+                    <main class="admin-main">
+                        <!-- Seção Dashboard -->
+                        <section id="admin-dashboard" class="admin-section active">
+                            <h1 class="admin-section-title">Dashboard</h1>
+                            <div class="admin-stats">
+                                <div class="stat-card">
+                                    <h3 class="stat-title">Total de Usuários</h3>
+                                    <p class="stat-value" id="stat-total-users">-</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3 class="stat-title">Posts Ativos</h3>
+                                    <p class="stat-value" id="stat-active-posts">-</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3 class="stat-title">Posts Hoje</h3>
+                                    <p class="stat-value" id="stat-posts-today">-</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Seção Usuários -->
+                        <section id="admin-users" class="admin-section">
+                            <h1 class="admin-section-title">Gerenciar Usuários</h1>
+                            <div class="admin-toolbar">
+                                <input type="text" id="admin-user-search" placeholder="Buscar usuário..." class="admin-search-input" aria-label="Buscar usuário">
+                                <select id="admin-user-role-filter" class="admin-filter-select" aria-label="Filtrar por cargo">
+                                    <option value="all">Todos os roles</option>
+                                    <option value="user">User</option>
+                                    <option value="mod">Mod</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div class="admin-table-container">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Usuário</th>
+                                            <th>Username</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-users-table">
+                                        <tr>
+                                            <td colspan="5" class="table-loading">Carregando...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- Seção Storage -->
+                        <section id="admin-storage" class="admin-section">
+                            <h1 class="admin-section-title">Limpeza de Storage</h1>
+                            <div class="admin-storage-info">
+                                <p class="admin-info-text">Esta seção permite limpar imagens órfãs do storage (imagens que não estão mais associadas a nenhum post).</p>
+                                <button type="button" class="btn btn-primary" id="btn-scan-orphaned-images">Escanear imagens órfãs</button>
+                                <button type="button" class="btn btn-danger hidden" id="btn-delete-orphaned-images">Deletar imagens órfãs</button>
+                            </div>
+                            <div id="orphaned-images-result" class="admin-result hidden">
+                                <h3>Imagens Órfãs Encontradas</h3>
+                                <p id="orphaned-count">-</p>
+                                <div id="orphaned-images-list"></div>
+                            </div>
+                            <div class="admin-storage-info" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+                                <p class="admin-info-text">Deletar posts expirados que não estão fixados. Posts fixados são preservados.</p>
+                                <button type="button" class="btn btn-danger" id="btn-delete-expired-posts">Deletar posts expirados não fixados</button>
+                            </div>
+                            <div id="expired-posts-result" class="admin-result hidden">
+                                <h3>Posts Expirados Deletados</h3>
+                                <p id="expired-posts-count">-</p>
+                            </div>
+                        </section>
+
+                        <!-- Seção Tags -->
+                        <section id="admin-tags" class="admin-section">
+                            <h1 class="admin-section-title">Gerenciar Tags</h1>
+                            <div class="admin-tags-info">
+                                <p class="admin-info-text">Crie e gerencie tags para categorizar assuntos.</p>
+                            </div>
+                            <div class="admin-tags-form">
+                                <input type="text" id="tag-name-input" placeholder="Nome da tag" class="admin-input" aria-label="Nome da tag">
+                                <input type="text" id="tag-emoji-input" placeholder="Emoji" class="admin-input" maxlength="2" aria-label="Emoji da tag">
+                                <button type="button" class="btn btn-primary" id="btn-create-tag">Criar Tag</button>
+                            </div>
+                            <div class="admin-table-container">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Emoji</th>
+                                            <th>Nome</th>
+                                            <th>Slug</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-tags-table">
+                                        <tr>
+                                            <td colspan="4" class="table-loading">Carregando...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- Seção Roles (Admin only) -->
+                        <section id="admin-roles" class="admin-section">
+                            <h1 class="admin-section-title">Gerenciar Cargos</h1>
+                            <div class="admin-roles-info">
+                                <p class="admin-info-text">Gerencie usuários com cargos de Admin ou Mod.</p>
+                            </div>
+                            <div class="admin-table-container">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Usuário</th>
+                                            <th>Username</th>
+                                            <th>Cargo Atual</th>
+                                            <th>Novo Cargo</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-roles-table">
+                                        <tr>
+                                            <td colspan="5" class="table-loading">Carregando...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <!-- Seção Anúncios -->
+                        <section id="admin-anuncios" class="admin-section">
+                            <h1 class="admin-section-title">Gerenciar Anúncios</h1>
+                            <div class="admin-toolbar">
+                                <p class="admin-info-text">Gerenciar anúncios fixados acima do feed</p>
+                                <button class="btn btn-primary btn-small" id="admin-create-anuncio" type="button">Criar Anúncio</button>
+                            </div>
+                            <div id="admin-anuncios-list"></div>
+                        </section>
+
+                        <!-- Seção Páginas -->
+                        <section id="admin-paginas" class="admin-section">
+                            <h1 class="admin-section-title">Gerenciar Páginas</h1>
+                            <div class="admin-toolbar">
+                                <p class="admin-info-text">Crie e gerencie páginas personalizadas (Sobre, Regras, Tutoriais, etc)</p>
+                                <button class="btn btn-primary btn-small" id="admin-create-pagina" type="button">Criar Página</button>
+                            </div>
+                            <div id="admin-paginas-list"></div>
+                        </section>
+
+                        <!-- Seção Acessos -->
+                        <section id="admin-access" class="admin-section">
+                            <h1 class="admin-section-title">Gerenciar Acessos</h1>
+                            <div class="admin-toolbar">
+                                <p class="admin-info-text">Criar novas remessas de acesso</p>
+                                <button class="btn btn-primary btn-small" id="admin-create-batch" type="button">Nova Remessa</button>
+                            </div>
+                            <div id="admin-batches-list" class="admin-batches-list">
+                                <p class="admin-loading">Carregando remessas...</p>
+                            </div>
+                        </section>
+
+                        <!-- Modal para criar nova remessa -->
+                        <div id="batch-modal" class="modal hidden">
+                            <div class="modal-backdrop"></div>
+                            <div class="modal-dialog" style="max-width: 500px;">
+                                <button class="modal-close" id="batch-modal-close">✕</button>
+                                <h3 class="modal-title">Criar Nova Remessa de Acesso</h3>
+                                <form id="batch-form">
+                                    <div class="form-group">
+                                        <label for="batch-quantity">Quantidade de Acessos</label>
+                                        <input type="number" id="batch-quantity" min="1" max="100" value="25" required>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button type="button" class="btn btn-secondary" id="batch-cancel">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Criar Remessa</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Modal para criar/editar anúncio -->
+                        <div id="anuncio-modal" class="modal hidden">
+                            <div class="modal-backdrop"></div>
+                            <div class="modal-dialog" style="max-width: 800px;">
+                                <button class="modal-close" id="anuncio-modal-close">✕</button>
+                                <h3 class="modal-title" id="anuncio-modal-title">Criar Anúncio</h3>
+                                <form id="anuncio-form">
+                                    <input type="hidden" id="anuncio-id">
+                                    <div class="form-group">
+                                        <label for="anuncio-emoji">Emoji</label>
+                                        <input type="text" id="anuncio-emoji" value="📢" maxlength="10" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="anuncio-titulo-pt">Título (Português)</label>
+                                        <input type="text" id="anuncio-titulo-pt" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="anuncio-titulo-en">Título (Inglês)</label>
+                                        <input type="text" id="anuncio-titulo-en" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="anuncio-conteudo-pt">Conteúdo (Português)</label>
+                                        <div class="rich-text-editor">
+                                            <div class="editor-toolbar">
+                                                <button type="button" data-command="bold" title="Negrito"><b>B</b></button>
+                                                <button type="button" data-command="italic" title="Itálico"><i>I</i></button>
+                                                <button type="button" data-command="underline" title="Sublinhado"><u>U</u></button>
+                                                <button type="button" data-command="strikeThrough" title="Riscado"><s>S</s></button>
+                                                <button type="button" data-command="justifyLeft" title="Esquerda">⬅</button>
+                                                <button type="button" data-command="justifyCenter" title="Centralizado">⬌</button>
+                                                <button type="button" data-command="justifyRight" title="Direita">➡</button>
+                                                <button type="button" data-command="insertUnorderedList" title="Lista">•</button>
+                                                <button type="button" data-command="insertOrderedList" title="Numerada">1.</button>
+                                                <button type="button" data-command="formatBlock" data-value="h1" title="H1">H1</button>
+                                                <button type="button" data-command="formatBlock" data-value="h2" title="H2">H2</button>
+                                                <button type="button" data-command="formatBlock" data-value="h3" title="H3">H3</button>
+                                                <button type="button" data-command="insertHorizontalRule" title="Divisor">—</button>
+                                                <button type="button" id="insert-poll-btn" title="Enquete">📊</button>
+                                                <button type="button" id="insert-image-btn" title="Inserir Imagem">🖼</button>
+                                                <button type="button" id="insert-link-btn" title="Inserir Link">🔗</button>
+                                            </div>
+                                            <div id="anuncio-conteudo-pt" class="editor-content" contenteditable="true"></div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="anuncio-conteudo-en">Conteúdo (Inglês)</label>
+                                        <div class="rich-text-editor">
+                                            <div class="editor-toolbar">
+                                                <button type="button" data-command="bold" title="Negrito"><b>B</b></button>
+                                                <button type="button" data-command="italic" title="Itálico"><i>I</i></button>
+                                                <button type="button" data-command="underline" title="Sublinhado"><u>U</u></button>
+                                                <button type="button" data-command="strikeThrough" title="Riscado"><s>S</s></button>
+                                                <button type="button" data-command="justifyLeft" title="Esquerda">⬅</button>
+                                                <button type="button" data-command="justifyCenter" title="Centralizado">⬌</button>
+                                                <button type="button" data-command="justifyRight" title="Direita">➡</button>
+                                                <button type="button" data-command="insertUnorderedList" title="Lista">•</button>
+                                                <button type="button" data-command="insertOrderedList" title="Numerada">1.</button>
+                                                <button type="button" data-command="formatBlock" data-value="h1" title="H1">H1</button>
+                                                <button type="button" data-command="formatBlock" data-value="h2" title="H2">H2</button>
+                                                <button type="button" data-command="formatBlock" data-value="h3" title="H3">H3</button>
+                                                <button type="button" data-command="insertHorizontalRule" title="Divisor">—</button>
+                                                <button type="button" id="insert-poll-btn-en" title="Enquete">📊</button>
+                                                <button type="button" id="insert-image-btn-en" title="Inserir Imagem">🖼</button>
+                                                <button type="button" id="insert-link-btn-en" title="Inserir Link">🔗</button>
+                                            </div>
+                                            <div id="anuncio-conteudo-en" class="editor-content" contenteditable="true"></div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="anuncio-expira-em">Data de Expiração (opcional)</label>
+                                        <input type="datetime-local" id="anuncio-expira-em">
+                                    </div>
+                                    <div class="form-group checkbox-group">
+                                        <label>
+                                            <input type="checkbox" id="anuncio-fixado">
+                                            Fixado (aparecer acima do feed)
+                                        </label>
+                                    </div>
+                                    <div class="modal-actions">
+                                        <button type="button" class="btn btn-secondary" id="anuncio-cancel">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Salvar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Modal para criar/editar página -->
+                        <div id="pagina-modal" class="modal hidden">
+                            <div class="modal-backdrop"></div>
+                            <div class="modal-dialog" style="max-width: 900px;">
+                                <button class="modal-close" id="pagina-modal-close">✕</button>
+                                <h3 class="modal-title" id="pagina-modal-title">Criar Página</h3>
+                                <form id="pagina-form">
+                                    <input type="hidden" id="pagina-id">
+                                    <div class="form-group" style="display: flex; gap: 16px; align-items: flex-end;">
+                                        <div style="flex: 0 0 120px;">
+                                            <label for="pagina-slug">Slug</label>
+                                            <input type="text" id="pagina-slug" placeholder="sobre" required style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 0 0 200px;">
+                                            <label for="pagina-parent-id">Página Pai</label>
+                                            <select id="pagina-parent-id" style="width: 100%;">
+                                                <option value="">Nenhuma</option>
+                                            </select>
+                                        </div>
+                                        <div style="flex: 0 0 80px;">
+                                            <label for="pagina-ordem">Ordem</label>
+                                            <input type="number" id="pagina-ordem" value="0" min="0" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label>&nbsp;</label>
+                                            <div class="checkbox-group" style="margin-top: 8px;">
+                                                <label>
+                                                    <input type="checkbox" id="pagina-publicado" checked>
+                                                    Publicado
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Conteúdo</label>
+                                        <div class="rich-text-editor">
+                                            <div class="editor-toolbar">
+                                                <button type="button" id="pagina-lang-toggle" class="lang-toggle-btn" style="margin-right: auto;">🇧🇷 PT</button>
+                                                <button type="button" data-command="bold" title="Negrito"><b>B</b></button>
+                                                <button type="button" data-command="italic" title="Itálico"><i>I</i></button>
+                                                <button type="button" data-command="underline" title="Sublinhado"><u>U</u></button>
+                                                <button type="button" data-command="strikeThrough" title="Riscado"><s>S</s></button>
+                                                <button type="button" data-command="justifyLeft" title="Esquerda">⬅</button>
+                                                <button type="button" data-command="justifyCenter" title="Centralizado">⬌</button>
+                                                <button type="button" data-command="justifyRight" title="Direita">➡</button>
+                                                <button type="button" data-command="insertUnorderedList" title="Lista">•</button>
+                                                <button type="button" data-command="insertOrderedList" title="Numerada">1.</button>
+                                                <button type="button" data-command="formatBlock" data-value="h1" title="H1">H1</button>
+                                                <button type="button" data-command="formatBlock" data-value="h2" title="H2">H2</button>
+                                                <button type="button" data-command="formatBlock" data-value="h3" title="H3">H3</button>
+                                                <button type="button" data-command="insertHorizontalRule" title="Divisor">—</button>
+                                                <button type="button" id="pagina-insert-quote-btn" title="Citação">❝</button>
+                                                <button type="button" id="pagina-insert-code-btn" title="Código">💻</button>
+                                                <button type="button" id="pagina-insert-table-btn" title="Tabela">📊</button>
+                                                <button type="button" id="pagina-insert-highlight-btn" title="Frase Destaque">✨</button>
+                                                <button type="button" id="pagina-insert-button-btn" title="Botão">🔘</button>
+                                                <button type="button" id="pagina-insert-alt-title-btn" title="Título Alternante">📝</button>
+                                                <button type="button" id="pagina-insert-alt-list-btn" title="Lista Alternante">📋</button>
+                                                <button type="button" id="pagina-insert-date-btn" title="Data">📅</button>
+                                                <button type="button" id="pagina-insert-signature-btn" title="Assinatura">✍️</button>
+                                                <button type="button" id="pagina-view-html-btn" title="Ver HTML/CSS">👁️</button>
+                                                <button type="button" id="pagina-insert-poll-btn" title="Enquete">📊</button>
+                                                <button type="button" id="pagina-insert-image-btn" title="Inserir Imagem">🖼</button>
+                                                <button type="button" id="pagina-insert-link-btn" title="Inserir Link">🔗</button>
+                                                <button type="button" id="pagina-add-subpage-btn" title="Criar Sub-página">📄+</button>
+                                                <button type="button" id="pagina-view-subpages-btn" title="Ver Sub-páginas">📂</button>
+                                            </div>
+                                            <input type="text" id="pagina-titulo" placeholder="Título da página" required style="width: 100%; padding: 8px; border: none; border-bottom: 1px solid var(--border-color); font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+                                            <div id="pagina-conteudo" class="editor-content" contenteditable="true"></div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-actions">
+                                        <button type="button" class="btn btn-secondary" id="pagina-cancel">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Salvar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Modal para criar enquete -->
+                        <div id="poll-modal" class="modal hidden">
+                            <div class="modal-backdrop"></div>
+                            <div class="modal-dialog" style="max-width: 500px;">
+                                <button class="modal-close" id="poll-modal-close">✕</button>
+                                <h3 class="modal-title">Criar Enquete</h3>
+                                <form id="poll-form">
+                                    <div class="form-group">
+                                        <label for="poll-question">Pergunta</label>
+                                        <input type="text" id="poll-question" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Opções</label>
+                                        <div id="poll-options">
+                                            <div class="poll-option">
+                                                <input type="text" id="poll-option-1" class="poll-option-input" placeholder="Opção 1" required>
+                                            </div>
+                                            <div class="poll-option">
+                                                <input type="text" id="poll-option-2" class="poll-option-input" placeholder="Opção 2" required>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-secondary btn-small" id="add-poll-option" style="margin-top: 8px;">+ Adicionar Opção</button>
+                                    </div>
+                                    <div class="modal-actions">
+                                        <button type="button" class="btn btn-secondary" id="poll-cancel">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Inserir Enquete</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+
+                <!-- Vista de Páginas Personalizadas -->
+                <div id="page-view" class="page-view hidden">
+                    <aside class="sidebar-left">
+                        <!-- Sidebar Menu para Tutoriais -->
+                        <div id="page-sidebar-menu" class="page-sidebar-menu hidden">
+                            <h3 class="sidebar-menu-title" data-i18n="page.menu">Menu</h3>
+                            <nav class="sidebar-menu-nav" id="sidebar-menu-nav">
+                                <!-- Links serão gerados dinamicamente -->
+                            </nav>
+                        </div>
+                    </aside>
+
+                    <main class="page-main-content">
+                        <!-- Breadcrumb de navegação -->
+                        <div class="page-breadcrumb" id="page-breadcrumb">
+                            <button class="breadcrumb-back" id="page-back-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                                </svg>
+                                <span data-i18n="nav.back">Voltar</span>
+                            </button>
+                        </div>
+
+                        <!-- Card de Conteúdo da Página -->
+                        <article class="page-content-card" id="page-content-card">
+                            <h1 class="page-title" id="page-title">Título da Página</h1>
+                            <div class="page-content" id="page-content">
+                                <p class="page-loading">Carregando...</p>
+                            </div>
+                        </article>
+                    </main>
+
+                    <aside class="sidebar-right">
+                        <!-- Footer -->
+                        <div class="sidebar-card">
+                            <footer class="sidebar-footer">
+                                <div class="footer-links">
+                                    <a href="#/page/sobre">Sobre a Pracinha</a>
+                                    <span class="dot-separator">•</span>
+                                    <a href="#/page/regras">Regras</a>
+                                    <span class="dot-separator">•</span>
+                                    <a href="#/page/privacidade">Privacidade</a>
+                                </div>
+                                <div class="footer-language-toggle">
+                                    <button type="button" class="lang-toggle-btn" id="lang-toggle-footer">🇧🇷 PT</button>
+                                </div>
+                                <p class="footer-attribution">Feito com <span class="heart">❤️</span> por Juan Rocha.</p>
+                                <a href="https://neocities.org/site/pracinha" class="domain-link"
+                                    target="_blank">pracinha.neocities.org</a>
+                            </footer>
+                        </div>
+                    </aside>
+                </div>
+
+                <!-- Vista de Configurações -->
+                <div id="settings-view" class="settings-view hidden">
+                    <aside class="settings-nav">
+                        <h2 class="settings-title" data-i18n="btn.settings">Configurações</h2><br>
+                        <nav class="settings-nav-list">
+                            <button class="settings-nav-item active" data-section="perfil">
+                                <span data-i18n="settings.profile">Perfil</span>
+                            </button>
+                            <button class="settings-nav-item" data-section="conta">
+                                <span data-i18n="settings.account">Conta</span>
+                            </button>
+                        </nav>
+                    </aside>
+
+                    <div class="settings-content">
+
+                        <!-- Seção Perfil -->
+                        <div id="settings-section-perfil" class="settings-section hidden">
+                            <h1 class="settings-section-title full-width" data-i18n="settings.profile">Perfil</h1>
+                            <form id="profile-form" class="settings-form">                                
+                                
+                                <!-- Conteúdo da Esquerda -->
+                                <div class="settings-form-right">
+
+                                    <!-- FOTO DO PERFIL -->
+                                    <div class="form-group">
+                                        <label data-i18n="label.profilePhoto">Foto de Perfil</label>
+                                        <button type="button" class="btn btn-secondary btn-full" id="btn-upload-avatar-settings" data-i18n="btn.changeProfilePhoto">📷 Alterar foto de perfil</button>
+                                        <input type="file" id="avatar-upload-settings-input" accept="image/*" style="display: none;">
+                                    </div>
+
+                                    <!-- APELIDO -->
+                                    <div class="form-group">
+                                        <label for="profile-apelido" data-i18n="label.nickname">Apelido</label>
+                                        <input type="text" id="profile-apelido" placeholder="Seu apelido (será usado como autor dos posts)">
+                                        <small class="form-hint" data-i18n="label.nicknameHint">Este apelido será usado como sua principal identificação em posts, respostas, likes e notificações.</small>
+                                    </div>
+
+                                    <!-- NOME -->
+                                    <div class="form-group">
+                                        <label for="profile-nome" data-i18n="label.name">Nome</label>
+                                        <div class="input-with-toggle">
+                                            <input type="text" id="profile-nome" placeholder="Seu nome completo">
+                                            <label class="toggle-label" for="show-name">
+                                                <div class="checkbox-wrapper-2">
+                                                    <input type="checkbox" id="show-name" class="ikxBAC" checked>
+                                                </div>
+                                                <span data-i18n="label.showProfile">Mostrar no perfil</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- LOCAL -->
+                                    <div class="form-group">
+                                        <label for="profile-local" data-i18n="label.local">Local</label>
+                                        <div class="input-with-toggle">
+                                            <input type="text" id="profile-local" placeholder="Ex: Rio de Janeiro, Brasil">
+                                            <label class="toggle-label" for="show-local">
+                                                <div class="checkbox-wrapper-2">
+                                                    <input type="checkbox" id="show-local" class="ikxBAC" checked>
+                                                </div>
+                                                <span data-i18n="label.showProfile">Mostrar no perfil</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- SITE -->
+                                    <div class="form-group">
+                                        <label for="profile-site" data-i18n="label.site">🔗</label>
+                                        <div class="input-with-toggle">
+                                            <input type="url" id="profile-site" placeholder="https://seusite.com">
+                                            <label class="toggle-label" for="show-site">
+                                                <div class="checkbox-wrapper-2">
+                                                    <input type="checkbox" id="show-site" class="ikxBAC" checked>
+                                                </div>
+                                                <span data-i18n="label.showProfile">Mostrar no perfil</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- BIO -->
+                                    <div class="form-group">
+                                        <label for="profile-bio" data-i18n="label.bio">Bio</label>
+                                        <div class="input-with-toggle">
+                                            <textarea id="profile-bio" rows="7"
+                                                placeholder="Conte um pouco sobre você"></textarea>
+                                            <label class="toggle-label" for="show-bio">
+                                                <div class="checkbox-wrapper-2">
+                                                    <input type="checkbox" id="show-bio" class="ikxBAC" checked>
+                                                </div>
+                                                <span data-i18n="label.showProfile">Mostrar no perfil</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- MÚSICA -->
+                                    <div class="form-group">
+                                        <label for="profile-soundcloud">🎵 Música (SoundCloud ou MP3)</label>
+                                        <input type="text" id="profile-soundcloud" placeholder="https://soundcloud.com/... ou link.mp3">
+                                        <small class="form-hint">Cole um link do SoundCloud ou até 5 links de .mp3 separados por vírgula (sem host? Use <a href="https://catbox.moe/" target="_blank" rel="noopener">catbox.moe</a>)</small>
+                                    </div>
+
+                                    <!-- PERSONALIZAR BG -->
+                                    <div class="form-group">
+                                        <label data-i18n="label.bgCustomize">Personalizar fundo</label>
+                                        <div class="bg-type-selector">
+                                            <label class="radio-label" for="bg-type-none">
+                                                <input type="radio" id="bg-type-none" name="bg-type" value="none" checked>
+                                                <span data-i18n="label.bgDefault">Padrão</span>
+                                            </label>
+                                            <label class="radio-label" for="bg-type-color">
+                                                <input type="radio" id="bg-type-color" name="bg-type" value="color">
+                                                <span data-i18n="label.bgColor">Cor sólida</span>
+                                            </label>
+                                            <label class="radio-label" for="bg-type-image">
+                                                <input type="radio" id="bg-type-image" name="bg-type" value="image">
+                                                <span>Imagem</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- COR DE FUNDO -->
+                                    <div class="form-group bg-color-group hidden">
+                                        <label for="bg-color">Cor de fundo</label>
+                                        <input type="color" id="bg-color" value="#D4C4A8">
+                                    </div>
+
+                                    <!-- IMAGEM DE FUNDO -->
+                                    <div class="form-group bg-image-group hidden">
+                                        <label>Imagem de fundo</label>
+                                        <div class="bg-image-options">
+                                            <div class="bg-preset-section">
+                                                <label>Escolher uma imagem pré-definida:</label>
+                                                <div class="bg-preset-grid" id="bg-preset-grid">
+                                                    <!-- Imagens pré-definidas serão carregadas aqui -->
+                                                </div>
+                                            </div>
+                                            <div class="bg-upload-section">
+                                                <label>ou fazer upload da sua imagem:</label>
+                                                <input type="file" id="bg-image-upload" accept="image/jpeg,image/png,image/webp,image/gif">
+                                                <div id="bg-image-preview" class="bg-image-preview hidden">
+                                                    <img src="" alt="Preview">
+                                                    <button type="button" class="btn-remove-bg-image" id="btn-remove-bg-image">Remover</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Conteúdo da Direita -->
+                                <div class="settings-form-right">
+
+                                    <!-- FONTS PERSONALIZÁVEIS -->
+                                    <div class="form-group">
+                                        <label>Personalizar Fonts</label>
+                                        <div class="font-selector">
+                                            <div class="font-group">
+                                                <label for="font-title">Apelido</label>
+                                                <select id="font-title">
+                                                    <option value="">Padrão (Google Sans)</option>
+                                                    <option value="Cherry Bomb One">Cherry Bomb One</option>
+                                                    <option value="Chicle">Chicle</option>
+                                                    <option value="Bagel Fat One">Bagel Fat One</option>
+                                                    <option value="Emblema One">Emblema One</option>
+                                                    <option value="UnifrakturMaguntia">UnifrakturMaguntia</option>
+                                                    <option value="Bitcount Prop Single">Bitcount Prop Single</option>
+                                                    <option value="Happy Monkey">Happy Monkey</option>
+                                                    <option value="Mea Culpa">Mea Culpa</option>
+                                                    <option value="Rock Salt">Rock Salt</option>
+                                                    <option value="Bangers">Bangers</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="font-size-control">
+                                            <input type="range" id="apelido-font-size" min="40" max="60" value="48" step="1">
+                                            <span id="apelido-font-size-value">48px</span>
+                                        </div>
+                                        <small class="form-hint">Ajuste o tamanho do seu apelido no perfil.</small>
+                                        <br><br>
+
+                                        <div class="font-group">
+                                            <label for="font-body">Texto Geral</label>
+                                            <select id="font-body">
+                                                <option value="">Padrão (Google Sans)</option>
+                                                <option value="Sour Gummy">Sour Gummy</option>
+                                                <option value="Lekton">Lekton</option>
+                                                <option value="Gamja Flower">Gamja Flower</option>
+                                                <option value="Handlee">Handlee</option>
+                                                <option value="Cinzel">Cinzel</option>
+                                                <option value="Amiri">Amiri</option>
+                                                <option value="Betania Patmos">Betania Patmos</option>
+                                                <option value="Elsie">Elsie</option>
+                                                <option value="Baloo Thambi 2">Baloo Thambi 2</option>
+                                                <option value="Comic Relief">Comic Relief</option>
+                                            </select>
+                                        </div>
+
+                                        
+                                        <div class="font-size-control">
+                                            <input type="range" id="body-font-size" min="11" max="15" value="13" step="1">
+                                            <span id="body-font-size-value">13px</span>
+                                        </div>
+                                        <small class="form-hint">Ajuste o tamanho do texto no card do seu perfil (nome, username, etc).</small>
+                                    </div>
+                                    
+                                    <!-- DATA DE NASCIMENTO -->
+                                    <div class="form-group">
+                                        <label for="profile-data-nascimento" data-i18n="label.dataNascimento">Data de Nascimento</label>
+                                        <div class="input-with-toggle">
+                                            <input type="date" id="profile-data-nascimento">
+                                            <label class="toggle-label" for="show-idade">
+                                                <div class="checkbox-wrapper-2">
+                                                    <input type="checkbox" id="show-idade" class="ikxBAC" checked>
+                                                </div>
+                                                <span data-i18n="label.showProfile">Mostrar no perfil</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- PRONOMES -->
+                                    <div class="form-group">
+                                        <label for="profile-genero" data-i18n="label.pronomes">Pronomes</label>
+                                        <div class="input-with-toggle">
+                                            <select id="profile-genero">
+                                                <option value="">Selecione...</option>
+                                                <option value="ele/dele">Ele/Dele</option>
+                                                <option value="ela/dela">Ela/Dela</option>
+                                                <option value="elu/delu">Elu/Delu</option>
+                                                <option value="elx/delx">Elx/Delx</option>
+                                                <option value="não especificar">Não especificar</option>
+                                                <option value="outro">Outro</option>
+                                            </select>
+                                            <label class="toggle-label" for="show-pronomes">
+                                                <div class="checkbox-wrapper-2">
+                                                    <input type="checkbox" id="show-pronomes" class="ikxBAC" checked>
+                                                </div>
+                                                <span data-i18n="label.showProfile">Mostrar no perfil</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- SEXUALIDADE -->
+                                    <div class="form-group">
+                                        <label for="profile-sexualidade" data-i18n="label.sexualidade">Sexualidade</label>
+                                        <div class="input-with-toggle">
+                                            <select id="profile-sexualidade">
+                                                <option value="">Selecione...</option>
+                                                <option value="Heterossexual">Heterossexual</option>
+                                                <option value="Homossexual">Homossexual</option>
+                                                <option value="Bissexual">Bissexual</option>
+                                                <option value="Pansexual">Pansexual</option>
+                                                <option value="Assexual">Assexual</option>
+                                                <option value="Demisexual">Demisexual</option>
+                                                <option value="Queer">Queer</option>
+                                                <option value="Questionando">Questionando</option>
+                                            </select>
+                                            <label class="toggle-label" for="show-sexualidade">
+                                                <div class="checkbox-wrapper-2">
+                                                    <input type="checkbox" id="show-sexualidade" class="ikxBAC" checked>
+                                                </div>
+                                                <span data-i18n="label.showProfile">Mostrar no perfil</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- PERSONALIDADE -->
+                                    <div class="form-group">
+                                        <label data-i18n="label.mbti">🧠 Personalidade</label>
+                                        
+                                        <!-- Seção de descoberta de MBTI -->
+                                        <div id="mbti-discovery-section" class="mbti-discovery-section hidden">
+                                            <div class="mbti-discovery-icon">🧠</div>
+                                            <h3 class="mbti-discovery-title">Descubra seu tipo de personalidade</h3>
+                                            <p class="mbti-discovery-text">Um teste rápido de aproximadamente 2 minutos para descobrir seu perfil.</p>
+                                            <div class="mbti-discovery-actions">
+                                                <button type="button" class="btn btn-primary btn-full" id="btn-discover-mbti">Descobrir meu tipo</button>
+                                                <button type="button" class="btn btn-secondary btn-full" id="btn-add-mbti-manual">Adicionar manualmente</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Display de resultado MBTI -->
+                                        <div id="mbti-result-display" class="mbti-result-display hidden">
+                                            <div class="mbti-result-display-icon">🧠</div>
+                                            <div class="mbti-result-display-type" id="mbti-display-type">INFP</div>
+                                            <p class="mbti-result-display-hint">Clique para ver detalhes</p>
+                                        </div>
+                                        
+                                        <!-- Checkbox de visibilidade MBTI -->
+                                        <div id="mbti-visibility-section" class="hidden">
+                                            <label class="toggle-label" for="show-mbti">
+                                                <div class="checkbox-wrapper-2">
+                                                    <input type="checkbox" id="show-mbti" class="ikxBAC" checked>
+                                                </div>
+                                                <span data-i18n="label.showProfile">Mostrar no perfil</span>
+                                            </label>
+                                        </div>
+                                        
+                                        <!-- Campo manual de MBTI (oculto por padrão) -->
+                                        <div id="mbti-manual-input" class="hidden">
+                                            <input type="text" id="profile-mbti" placeholder="Ex: INFP">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- BOTÃO DE SALVAR -->
+                                <button type="submit" class="btn btn-primary full-width" data-i18n="btn.saveProfile">Salvar alterações</button>
+                            </form>
+                        </div>
+                        
+                        <!-- Seção Conta -->
+                        <div id="settings-section-conta" class="settings-section">
+                            <form id="account-form" class="settings-form">
+                                <h3 class="settings-section-title" data-i18n="settings.account">Conta</h3>
+                                <div class="form-group">
+                                    <label for="profile-username" data-i18n="label.username">@Usuário</label>
+                                    <input type="text" id="profile-username" placeholder="@usuario" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-email" data-i18n="label.email">Email</label>
+                                    <input type="email" id="profile-email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-current-password" data-i18n="label.currentPassword">Senha Atual</label>
+                                    <input type="password" id="profile-current-password" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="profile-new-password" data-i18n="label.newPassword">Nova senha
+                                        (opcional)</label>
+                                    <input type="password" id="profile-new-password"
+                                        placeholder="Deixe em branco para não alterar">
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="settings.language">Idioma</label>
+                                    <button type="button" class="lang-toggle-btn" id="lang-toggle-settings">🇧🇷 PT</button>
+                                </div>
+                                <button type="submit" class="btn btn-primary" data-i18n="btn.saveProfile">Salvar
+                                    alterações</button>
+                            </form>
+
+                            <div class="settings-danger-zone">
+                                <h4 class="danger-zone-title">Zona de Perigo</h4>
+                                <button type="button" class="btn btn-danger" id="delete-account-btn">Deletar Conta</button>
+                            </div>
+                        </div>
+
+                        
+                    </div>
+
+                    <aside class="settings-sidebar">
+                        <!-- Mostruário do Perfil -->
+                        <div class="sidebar-card settings-profile-preview" id="settings-profile-preview">
+                            <h3 class="card-title">Mostruário do Perfil</h3>
+                            <div class="profile-preview-content" id="profile-preview-content">
+                                <!-- Conteúdo do perfil será renderizado aqui -->
+                            </div>
+                        </div>
+                        <div class="sidebar-card">
+                            <footer class="sidebar-footer">
+                                <div class="footer-links">
+                                    <a href="#/page/sobre">Sobre a Pracinha</a>
+                                    <span class="dot-separator">•</span>
+                                    <a href="#/page/regras">Regras</a>
+                                    <span class="dot-separator">•</span>
+                                    <a href="#/page/privacidade">Privacidade</a>
+                                </div>
+                                <div class="footer-language-toggle">
+                                    <button type="button" class="lang-toggle-btn" id="lang-toggle-footer">🇧🇷 PT</button>
+                                </div>
+                                <p class="footer-attribution">Feito com <span class="heart">❤️</span> por Juan Rocha.</p>
+                                <a href="https://neocities.org/site/pracinha" class="domain-link"
+                                    target="_blank">pracinha.neocities.org</a>
+                            </footer>
+                        </div>
+                    </aside>
+                </div>
+
+                <!-- Vista do Cantinho (Perfil) -->
+                <div id="cantinho-view" class="cantinho-view hidden">
+                    <!-- Botão flutuante para navegação em tela pequena -->
+                    <button type="button" class="mobile-nav-btn mobile-nav-right" id="cantinho-nav-right">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="mobile-nav-btn mobile-nav-left hidden" id="cantinho-nav-left">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15.41 7.41L10.83 12l4.58 4.59L14 18l-6-6 6-6 1.41 1.41z"/>
+                        </svg>
+                    </button>
+
+                    <aside class="sidebar-left">
+                        <!-- Assuntos fixados -->
+                        <div class="sidebar-card pinned-topics-card" id="cantinho-pinned-card">
+                            <h3 class="card-title" data-i18n="sidebar.pinnedTopics">Assuntos fixados <span class="pinned-count"
+                                    id="cantinho-pinned-count">(0/3)</span></h3>
+                            <ul class="pinned-list" id="cantinho-pinned-list"></ul>
+                        </div>
+
+                        <div class="sidebar-card beta-invites-card hidden" id="beta-invites-card">
+                            <h3 class="card-title">Convites <span id="beta-invites-count">0/3</span></h3>
+                            <p class="beta-invites-hint">Convide pessoas para testar a Pracinha.</p>
+                            <button class="btn-text-link" id="btn-create-beta-invite" type="button">Gerar convite</button>
+                            <div class="beta-invites-list" id="beta-invites-list"></div>
+                        </div>
+
+                        <!-- Bloco X pessoas na pracinha agora -->
+                        <div class="sidebar-card online-visitors-card">
+                            <div class="card-header-row">
+                                <span class="status-dot green"></span>
+                                <h3 class="card-title"><span class="count-active" id="cantinho-active-count-text">23</span>
+                                    <span data-i18n="sidebar.onlineNow">pessoas estão agora na pracinha</span></h3>
+                            </div>
+                            <div class="visitors-list" id="cantinho-online-visitors-list">
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #e1dcd6;">A</div>
+                                </button>
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #dcd6e1;">J</div>
+                                </button>
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #d6e1dc;">L</div>
+                                </button>
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #e1d6d6;">P</div>
+                                </button>
+                                <button type="button" class="visitor-item visitor-name-button">
+                                    <div class="visitor-avatar-placeholder" style="background: #e1e1d6;">M</div>
+                                </button>
+                            </div>
+                            <button class="btn-text-link" id="btn-ver-todos-visitantes-cantinho">Ver todos</button>
+                        </div>
+
+                        <!-- Bloco Assuntos de hoje -->
+                        <div class="sidebar-card tags-card">
+                            <h3 class="card-title">Assuntos de hoje</h3>
+                            <div class="tags-container" id="cantinho-sidebar-tags-container">
+                                <button class="tag-btn active" data-tag="all">Todos</button>
+                                <button class="tag-btn" data-tag="música">🎵 música</button>
+                                <button class="tag-btn" data-tag="jogos">🎮 jogos</button>
+                                <button class="tag-btn" data-tag="livros">📚 livros</button>
+                                <button class="tag-btn" data-tag="café">☕ café</button>
+                                <button class="tag-btn" data-tag="cotidiano">🌅 cotidiano</button>
+                            </div>
+                            <button class="btn-text-link" id="btn-ver-todos-assuntos">Ver todos os assuntos</button>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="sidebar-card">
+                            <footer class="sidebar-footer">
+                                <div class="footer-links">
+                                    <a href="#/page/sobre">Sobre a Pracinha</a>
+                                    <span class="dot-separator">•</span>
+                                    <a href="#/page/regras">Regras</a>
+                                    <span class="dot-separator">•</span>
+                                    <a href="#/page/privacidade">Privacidade</a>
+                                </div>
+                                <div class="footer-language-toggle">
+                                    <button type="button" class="lang-toggle-btn" id="lang-toggle-footer">🇧🇷 PT</button>
+                                </div>
+                                <p class="footer-attribution">Feito com <span class="heart">❤️</span> por Juan Rocha.</p>
+                                <a href="https://neocities.org/site/pracinha" class="domain-link"
+                                    target="_blank">pracinha.neocities.org</a>
+                            </footer>
+                        </div>
+                    </aside>
+
+                    <!-- Coluna Central (Cantinho - Postagens) -->
+                    <div class="cantinho-content">
+                        <div id="cantinho-feed-content" class="feed-content">
+                            <!-- Postagens do usuário serão carregadas aqui -->
+                        </div>
+                    </div>
+
+                    <!-- Coluna Direita (Perfil) -->
+                    <aside class="sidebar-right">
+                        <!-- Player de música do Cantinho -->
+                        <div class="sidebar-card music-player-card hidden" id="cantinho-music-player-card">
+                            <div class="music-player">
+                                <div class="music-controls">
+                                    <button class="control-btn" id="cantinho-btn-prev" title="Anterior">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="control-btn play-btn" id="cantinho-btn-play">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="cantinho-play-icon">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="cantinho-pause-icon" class="hidden">
+                                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                        </svg>
+                                        <div class="comic-tooltip" id="cantinho-music-tooltip">
+                                            <div class="comic-tooltip-text">Nome da música</div>
+                                        </div>
+                                    </button>
+                                    <button class="control-btn" id="cantinho-btn-next" title="Próximo">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="control-btn hidden" id="cantinho-btn-shuffle" title="Aleatório">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+                                        </svg>
+                                    </button>
+                                    <div class="volume-control">
+                                        <button class="control-btn volume-btn" id="cantinho-btn-volume" title="Volume">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="cantinho-volume-icon">
+                                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                                            </svg>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="cantinho-mute-icon" class="hidden">
+                                                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                                            </svg>
+                                        </button>
+                                        <input type="range" class="volume-slider" id="cantinho-volume-slider" min="0" max="1" step="0.01" value="1" aria-label="Controle de volume">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bloco Meu Cantinho -->
+                        <div id="cantinho-profile-card-container"></div>
+
+                        <!-- Status do Cantinho -->
+                        <div class="sidebar-card" id="cantinho-status-card">
+                            <div class="profile-status-items" id="cantinho-status-list"></div>
+                        </div>
+
+                        <!-- Fotos do Cantinho -->
+                        <div class="sidebar-card user-photos-card page-sidebar-extra" id="cantinho-photos-card">
+                            <h3 class="card-title">Minhas fotos <span class="photos-count"
+                                    id="cantinho-photos-count">(0/6)</span></h3>
+                            <div class="photos-grid" id="cantinho-photos-grid"></div>
+                            <input type="file" id="cantinho-photo-upload" class="hidden"
+                                accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+                            <button class="btn-text-link" id="btn-add-cantinho-photo">Adicionar foto</button>
+                        </div>
+
+
+                    <!-- Vista de Perfil Público -->
+                    <div id="public-profile-view" class="public-profile-view hidden">
+                        <!-- Botão flutuante para navegação em tela pequena -->
+                        <button type="button" class="mobile-nav-btn mobile-nav-right" id="public-profile-nav-right">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="mobile-nav-btn mobile-nav-left hidden" id="public-profile-nav-left">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M15.41 7.41L10.83 12l4.58 4.59L14 18l-6-6 6-6 1.41 1.41z"/>
+                            </svg>
+                        </button>
+
+                        <aside class="sidebar-left">
+                            <!-- Player de música do perfil público -->
+                            <div class="sidebar-card music-player-card hidden" id="public-profile-music-player-card">
+                                <div class="music-player">
+                                    <div class="music-info">
+                                        <a href="#" class="music-title-link" id="public-profile-music-title-link" target="_blank" rel="noopener">
+                                            <span class="music-title" id="public-profile-music-title">Carregando...</span>
+                                        </a>
+                                        <span class="music-artist" id="public-profile-music-artist"></span>
+                                    </div>
+                                    <div class="music-controls">
+                                        <button class="control-btn" id="public-profile-btn-prev" title="Anterior">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                                            </svg>
+                                        </button>
+                                        <button class="control-btn play-btn" id="public-profile-btn-play" title="Play/Pause">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="public-profile-play-icon">
+                                                <path d="M8 5v14l11-7z"/>
+                                            </svg>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="public-profile-pause-icon" class="hidden">
+                                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                            </svg>
+                                        </button>
+                                        <button class="control-btn" id="public-profile-btn-next" title="Próximo">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                                            </svg>
+                                        </button>
+                                        <div class="volume-control">
+                                            <button class="control-btn volume-btn" id="public-profile-btn-volume" title="Volume">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="public-profile-volume-icon">
+                                                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                                                </svg>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="public-profile-mute-icon" class="hidden">
+                                                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                                                </svg>
+                                            </button>
+                                            <input type="range" class="volume-slider" id="public-profile-volume-slider" min="0" max="1" step="0.01" value="1" aria-label="Controle de volume">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Assuntos fixados do perfil público -->
+                            <div class="sidebar-card pinned-topics-card" id="public-profile-pinned-card">
+                                <h3 class="card-title" data-i18n="sidebar.pinnedTopics">Assuntos fixados <span class="pinned-count"
+                                        id="public-profile-pinned-count">(0/3)</span></h3>
+                                <ul class="pinned-list" id="public-profile-pinned-list"></ul>
+                            </div>
+
+                            <!-- Bloco X pessoas na pracinha agora -->
+                            <div class="sidebar-card online-visitors-card">
+                                <div class="card-header-row">
+                                    <span class="status-dot green"></span>
+                                    <h3 class="card-title"><span class="count-active" id="active-count-text">23</span>
+                                        <span data-i18n="sidebar.onlineNow">pessoas estão agora na pracinha</span></h3>
+                                </div>
+                                <div class="visitors-list" id="online-visitors-list">
+                                    <button type="button" class="visitor-item visitor-name-button">
+                                        <div class="visitor-avatar-placeholder" style="background: #e1dcd6;">A</div>
+                                    </button>
+                                    <button type="button" class="visitor-item visitor-name-button">
+                                        <div class="visitor-avatar-placeholder" style="background: #dcd6e1;">J</div>
+                                    </button>
+                                    <button type="button" class="visitor-item visitor-name-button">
+                                        <div class="visitor-avatar-placeholder" style="background: #d6e1dc;">L</div>
+                                    </button>
+                                    <button type="button" class="visitor-item visitor-name-button">
+                                        <div class="visitor-avatar-placeholder" style="background: #e1d6d6;">P</div>
+                                    </button>
+                                    <button type="button" class="visitor-item visitor-name-button">
+                                        <div class="visitor-avatar-placeholder" style="background: #e1e1d6;">M</div>
+                                    </button>
+                                </div>
+                                <button class="btn-text-link" id="btn-ver-todos-visitantes">Ver todos</button>
+                            </div>
+
+                            <!-- Bloco Assuntos de hoje -->
+                            <div class="sidebar-card tags-card">
+                                <h3 class="card-title">Assuntos de hoje</h3>
+                                <div class="tags-container" id="sidebar-tags-container">
+                                    <button class="tag-btn active" data-tag="all">Todos</button>
+                                    <button class="tag-btn" data-tag="música">🎵 música</button>
+                                    <button class="tag-btn" data-tag="jogos">🎮 jogos</button>
+                                    <button class="tag-btn" data-tag="livros">📚 livros</button>
+                                    <button class="tag-btn" data-tag="café">☕ café</button>
+                                    <button class="tag-btn" data-tag="cotidiano">🌅 cotidiano</button>
+                                </div>
+                                <button class="btn-text-link" id="btn-ver-todos-assuntos">Ver todos os assuntos</button>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="sidebar-card">
+                                <footer class="sidebar-footer">
+                                    <div class="footer-links">
+                                        <a href="#">Sobre a Pracinha</a>
+                                        <span class="dot-separator">•</span>
+                                        <a href="#">Regras</a>
+                                        <span class="dot-separator">•</span>
+                                        <a href="#">Privacidade</a>
+                                    </div>
+                                    <p class="footer-attribution">Feito com <span class="heart">❤️</span> por Juan Rocha.</p>
+                                    <a href="https://neocities.org/site/pracinha" class="domain-link"
+                                        target="_blank">pracinha.neocities.org</a>
+                                </footer>
+                            </div>
+                        </aside>
+
+                        <!-- Coluna Central (Feed do perfil) -->
+                        <div class="cantinho-content">
+                            <div id="public-profile-feed-content" class="feed-content">
+                                <!-- Postagens do usuário serão carregadas aqui -->
+                            </div>
+                        </div>
+
+                        <!-- Coluna Direita (Perfil do usuário) -->
+                        <aside class="sidebar-right">
+                            <div id="public-profile-card-container"></div>
+
+                        <!-- Player de música do perfil público -->
+                        <div class="sidebar-card music-player-card hidden" id="public-profile-music-player-card">
+                            <div class="music-player">
+                                <div class="music-info">
+                                    <a href="#" class="music-title-link" id="public-profile-music-title-link" target="_blank" rel="noopener">
+                                        <span class="music-title" id="public-profile-music-title">Carregando...</span>
+                                    </a>
+                                    <span class="music-artist" id="public-profile-music-artist"></span>
+                                </div>
+                                <div class="music-controls">
+                                    <button class="control-btn" id="public-profile-btn-prev" title="Anterior">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="control-btn play-btn" id="public-profile-btn-play" title="Play/Pause">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="public-profile-play-icon">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="public-profile-pause-icon" class="hidden">
+                                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="control-btn" id="public-profile-btn-next" title="Próximo">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                                        </svg>
+                                    </button>
+                                    <div class="volume-control">
+                                        <button class="control-btn volume-btn" id="public-profile-btn-volume" title="Volume">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="public-profile-volume-icon">
+                                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                                            </svg>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="public-profile-mute-icon" class="hidden">
+                                                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                                            </svg>
+                                        </button>
+                                        <input type="range" class="volume-slider" id="public-profile-volume-slider" min="0" max="1" step="0.01" value="1" aria-label="Controle de volume">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <button class="scroll-top-btn" id="btn-scroll-top" type="button" aria-label="Voltar ao topo"
+                title="Voltar ao topo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </button>
+
+            <!-- Navegação mobile -->
+            <nav class="bottom-nav">
+                <button class="nav-btn active" data-page="pracinha">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    </svg>
+                </button>
+                <button class="nav-btn" data-page="visitantes">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </button>
+                <button class="nav-btn" data-page="adicionar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <button class="nav-btn" data-page="cantinho">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
+                <button class="nav-btn" data-page="settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+            </nav>
+
+            <!-- Botão flutuante de configurações (mobile) -->
+            <button class="fab settings-fab" id="settings-fab" type="button" aria-label="Configurações" title="Configurações">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+            <!-- Modal de Configurações (mobile) -->
+            <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Configurações">
+                <div id="settings-modal-backdrop" class="modal-backdrop"></div>
+                <div class="modal-dialog settings-modal-dialog">
+                    <button type="button" class="modal-close" id="settings-modal-close" aria-label="Fechar">×</button>
+                    <h3 class="modal-title">Configurações</h3>
+                    <div class="settings-modal-content">
+                        <button class="settings-modal-item" data-section="perfil">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <span>Perfil</span>
+                        </button>
+                        <button class="settings-modal-item" data-section="conta">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <span>Conta</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <input type="file" id="avatar-upload-input" class="hidden"
+                accept="image/jpeg,image/png,image/webp,image/gif">
+        </div>
+
+        <!-- Modal de Usuários -->
+        <div id="users-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Todos os Usuários">
+            <div id="users-modal-backdrop" class="modal-backdrop"></div>
+            <div class="modal-dialog users-modal-dialog">
+                <button type="button" class="modal-close" id="users-modal-close" aria-label="Fechar">×</button>
+                <h3 class="modal-title">Todos os Usuários</h3>
+                <div class="users-modal-content">
+                    <div class="users-modal-section">
+                        <h4 class="users-modal-section-title">Pessoas Online</h4>
+                        <div class="users-grid" id="modal-online-users-grid">
+                            <!-- Usuários online serão carregados aqui -->
+                        </div>
+                    </div>
+                    <div class="users-modal-section">
+                        <h4 class="users-modal-section-title">Todos os Perfis</h4>
+                        <div class="users-grid" id="modal-all-users-grid">
+                            <!-- Todos os perfis serão carregados aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Tags -->
+        <div id="tags-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Todos os Assuntos">
+            <div id="tags-modal-backdrop" class="modal-backdrop"></div>
+            <div class="modal-dialog tags-modal-dialog">
+                <button type="button" class="modal-close" id="tags-modal-close" aria-label="Fechar">×</button>
+                <h3 class="modal-title">Todos os Assuntos</h3>
+                <div class="tags-modal-content">
+                    <div class="tags-grid" id="modal-tags-grid">
+                        <!-- Todas as tags serão carregadas aqui -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer hidden">
+            <p class="footer-text">© 2026 Pracinha. Um mini-espaço social.</p>
+        </footer>
+
+        <!-- Modal de corte da foto de perfil -->
+        <div id="avatar-crop-modal" class="crop-modal hidden">
+            <div class="crop-modal-backdrop"></div>
+            <div class="crop-modal-dialog">
+                <h3 class="crop-modal-title">Ajustar foto</h3>
+                <p class="crop-modal-hint">Arraste a imagem e use o zoom para escolher a área</p>
+                <div class="crop-aspect-selector" id="crop-aspect-selector" style="display: none;">
+                    <button type="button" class="aspect-btn active" data-aspect="rectangular">Retangular</button>
+                    <button type="button" class="aspect-btn" data-aspect="square">Quadrado (1:1)</button>
+                </div>
+                <div class="crop-viewport" id="crop-viewport">
+                    <canvas id="crop-canvas"></canvas>
+                    <div class="crop-frame" aria-hidden="true"></div>
+                </div>
+                <label class="crop-zoom-label" for="crop-zoom">Zoom</label>
+                <input type="range" id="crop-zoom" class="crop-zoom" min="1" max="6" step="0.01" value="1">
+                <div class="crop-actions">
+                    <button type="button" class="btn btn-secondary" id="crop-cancel">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="crop-confirm">Salvar foto</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card de perfil ao passar/clicar em @menção -->
+        <div id="mention-profile-card" class="mention-profile-card hidden" role="tooltip">
+            <div class="mention-card-loading">...</div>
+            <div class="mention-card-content hidden">
+                <div class="mention-card-info">
+                    <strong class="mention-card-name" id="mention-card-name"></strong>
+                    <span class="mention-card-username" id="mention-card-username"></span>
+                    <p class="mention-card-status" id="mention-card-status"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="photo-view-modal" class="photo-modal hidden" role="dialog" aria-modal="true" aria-label="Foto maior">
+            <div class="photo-modal-backdrop"></div>
+            <div class="photo-modal-dialog">
+                <button type="button" class="photo-modal-close" id="photo-modal-close" aria-label="Fechar">×</button>
+                <img src="" alt="" class="photo-modal-image" id="photo-view-image">
+            </div>
+        </div>
+
+        <!-- Modal de edição de status -->
+        <div id="status-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Editar status">
+            <div class="modal-backdrop"></div>
+            <div class="modal-dialog status-modal-dialog">
+                <button type="button" class="modal-close" id="status-modal-close" aria-label="Fechar">×</button>
+                <h3 class="modal-title">Atualizar status</h3>
+                <p class="status-modal-hint">Sua atualização aparecerá no feed da Pracinha por 24h.</p>
+                
+                <div class="status-type-selector">
+                    <button type="button" class="status-type-btn active" data-type="listening" data-emoji="🎧">
+                        <span class="status-type-emoji">🎧</span>
+                        <span class="status-type-label">Ouvindo</span>
+                    </button>
+                    <button type="button" class="status-type-btn" data-type="eating" data-emoji="🍽️">
+                        <span class="status-type-emoji">🍽️</span>
+                        <span class="status-type-label">Comendo</span>
+                    </button>
+                    <button type="button" class="status-type-btn" data-type="reading" data-emoji="📚">
+                        <span class="status-type-emoji">📚</span>
+                        <span class="status-type-label">Lendo</span>
+                    </button>
+                    <button type="button" class="status-type-btn" data-type="watching" data-emoji="📺">
+                        <span class="status-type-emoji">📺</span>
+                        <span class="status-type-label">Assistindo</span>
+                    </button>
+                    <button type="button" class="status-type-btn" data-type="doing" data-emoji="🔨">
+                        <span class="status-type-emoji">🔨</span>
+                        <span class="status-type-label">Fazendo</span>
+                    </button>
+                    <button type="button" class="status-type-btn" data-type="thinking" data-emoji="💭">
+                        <span class="status-type-emoji">💭</span>
+                        <span class="status-type-label">Pensando</span>
+                    </button>
+                </div>
+
+                <div class="form-group status-emoji-custom-row">
+                    <label>Emoji do status</label>
+                    <div class="status-emoji-picker-container">
+                        <span class="current-selected-emoji" id="status-emoji-display">🎧</span>
+                        <button type="button" class="btn btn-secondary btn-small emoji-picker-btn" id="btn-change-status-emoji" data-target="status-emoji-display">Trocar emoji</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="status-content">O que você está <span id="status-action-label">ouvindo</span>?</label>
+                    <input type="text" id="status-content" placeholder="Ex: Nujabes - Luv(sic)" maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <div class="checkbox-wrapper-2">
+                            <input type="checkbox" id="status-fixed" class="ikxBAC">
+                        </div>
+                        <span>Fixar no meu Cantinho (permanente até alterar)</span>
+                    </label>
+                    <p class="field-help-text">Se não fixar, o status expira do seu perfil após 24 horas.</p>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-danger-outline" id="status-modal-delete">Limpar status</button>
+                    <button type="button" class="btn btn-secondary" id="status-modal-cancel">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="status-modal-save">Salvar status</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="add-action-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Adicionar ação">
+            <div id="add-action-modal-backdrop" class="modal-backdrop"></div>
+            <div class="modal-dialog">
+                <button type="button" class="modal-close" id="add-action-modal-close" aria-label="Fechar">×</button>
+                <h3 class="modal-title">Adicionar</h3>
+                <p class="status-modal-hint">Escolha entre postar um assunto ou adicionar um status.</p>
+                <div class="add-action-grid">
+                    <button type="button" class="btn btn-primary btn-full" id="add-action-assunto">Fazer postagem</button>
+                    <button type="button" class="btn btn-secondary btn-full" id="add-action-status">Adicionar status</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="beta-access-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Pedir acesso">
+            <div id="beta-access-modal-backdrop" class="modal-backdrop"></div>
+            <div class="modal-dialog beta-access-dialog">
+                <button type="button" class="modal-close" id="beta-access-modal-close" aria-label="Fechar">×</button>
+                <h3 class="modal-title">Pedir acesso</h3>
+                <p class="status-modal-hint">Envie seu pedido. A equipe da Pracinha poderá responder com um convite.</p>
+                <form id="beta-access-form">
+                    <div class="form-group">
+                        <label for="beta-access-email">Seu e-mail</label>
+                        <input type="email" id="beta-access-email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="beta-access-message">Mensagem (opcional)</label>
+                        <textarea id="beta-access-message" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Enviar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de confirmação de envio de acesso -->
+        <div id="access-sent-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Email enviado">
+            <div class="modal-backdrop"></div>
+            <div class="modal-dialog" style="max-width: 450px;">
+                <button type="button" class="modal-close" id="access-sent-modal-close" aria-label="Fechar">×</button>
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📧</div>
+                    <h3 class="modal-title" style="margin-bottom: 12px;">Verifique seu email!</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; line-height: 1.6;">
+                        Enviamos um link de acesso para o seu email.
+                    </p>
+                    <div style="background: var(--accent-subtle); padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: left;">
+                        <p style="font-size: 13px; margin: 0; color: var(--text-primary);">
+                            <strong>Importante:</strong> O email será enviado pelo <strong>Supabase</strong> (o serviço que usamos para autenticação). Pode aparecer como "noreply@supabase.io" ou similar.
+                        </p>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+                        O link expira em 7 dias. Se não encontrar,verifique sua caixa de spam.
+                    </p>
+                    <button type="button" class="btn btn-primary btn-full" id="access-sent-ok">Entendi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de confirmação de deleção de conta -->
+        <div id="delete-account-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Deletar conta">
+            <div class="modal-backdrop"></div>
+            <div class="modal-dialog" style="max-width: 450px;">
+                <button type="button" class="modal-close" id="delete-account-modal-close" aria-label="Fechar">×</button>
+                <div style="padding: 20px;">
+                    <div style="font-size: 48px; margin-bottom: 16px; text-align: center;">⚠️</div>
+                    <h3 class="modal-title" style="margin-bottom: 12px;">Deletar Conta</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px; line-height: 1.6;">
+                        Esta ação desativará sua conta por 7 dias. Você receberá um email com um link para recuperar sua conta durante esse período. Após 7 dias, a conta será permanentemente deletada.
+                    </p>
+                    <form id="delete-account-form">
+                        <div class="form-group">
+                            <label for="delete-account-password">Senha Atual</label>
+                            <input type="password" id="delete-account-password" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="delete-account-cancel">Cancelar</button>
+                            <button type="submit" class="btn btn-danger">Deletar Conta</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lightbox de fotos -->
+        <div id="photo-lightbox" class="photo-lightbox hidden" role="dialog" aria-modal="true" aria-label="Visualizar foto">
+            <div class="lightbox-backdrop" id="lightbox-backdrop"></div>
+            <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Fechar">×</button>
+            <button type="button" class="lightbox-nav lightbox-prev" id="lightbox-prev" aria-label="Foto anterior">‹</button>
+            <button type="button" class="lightbox-nav lightbox-next" id="lightbox-next" aria-label="Próxima foto">›</button>
+            <div class="lightbox-content">
+                <img src="" alt="Foto" id="lightbox-image">
+                <button type="button" class="lightbox-delete hidden" id="lightbox-delete" title="Apagar foto">🗑️</button>
+            </div>
+            <div class="lightbox-counter" id="lightbox-counter">1 / 6</div>
+        </div>
+
+        <div id="emoji-picker" class="emoji-picker hidden" role="listbox" aria-label="Selecionar emoji"></div>
+
+        <!-- YouTube Player Floated -->
+        <div id="youtube-player-floated" class="youtube-player-floated hidden">
+            <button class="youtube-player-toggle" id="youtube-player-toggle" title="Expandir/Colapsar Player">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" id="youtube-toggle-icon">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+                <span class="youtube-player-title" id="youtube-player-title"></span>
+            </button>
+            <div class="youtube-player-content" id="youtube-player-content">
+                <div id="youtube-iframe-container"></div>
+                <button class="youtube-player-close" id="youtube-player-close" title="Colapsar">×</button>
+            </div>
+        </div>
+
+        <!-- Modal de Teste MBTI -->
+        <div id="mbti-test-modal" class="hidden">
+            <div class="modal-dialog">
+                <div class="modal-header">
+                    <h3 class="modal-title">Descubra seu tipo de personalidade</h3>
+                    <button class="close-modal" id="mbti-test-close">×</button>
+                </div>
+                <div class="mbti-progress">
+                    <div class="mbti-progress-bar-container">
+                        <div class="mbti-progress-bar" id="mbti-progress-bar" style="width: 0%"></div>
+                    </div>
+                    <p class="mbti-progress-text" id="mbti-progress-text">Pergunta 1 de 16</p>
+                </div>
+                <div id="mbti-question-container">
+                    <!-- Perguntas serão carregadas aqui -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Resultado MBTI -->
+        <div id="mbti-result-modal" class="hidden">
+            <div class="modal-dialog">
+                <div id="mbti-result-content">
+                    <!-- Resultado será carregado aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/js/main.js"></script>
+    <script type="module" src="src/js/music-player.js"></script>
+    <script type="module" src="src/js/mbti-test.js"></script>
+</body>
+
+</html>

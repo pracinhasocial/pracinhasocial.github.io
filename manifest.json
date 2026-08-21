@@ -1,0 +1,56 @@
+{
+  "name": "Pracinha",
+  "short_name": "Pracinha",
+  "description": "Um mini-espaço social onde conversas acontecem naturalmente. Sem seguidores, sem algoritmos, sem pressão.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F5F0",
+  "theme_color": "#1c913f",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "src/components/logo.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "src/components/logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "communication"],
+  "shortcuts": [
+    {
+      "name": "Feed",
+      "short_name": "Feed",
+      "description": "Ver o feed de assuntos",
+      "url": "/#/feed",
+      "icons": [
+        {
+          "src": "src/components/logo.webp",
+          "sizes": "96x96",
+          "type": "image/webp"
+        }
+      ]
+    },
+    {
+      "name": "Meu Cantinho",
+      "short_name": "Cantinho",
+      "description": "Ir para o meu cantinho",
+      "url": "/#/cantinho",
+      "icons": [
+        {
+          "src": "src/components/logo.webp",
+          "sizes": "96x96",
+          "type": "image/webp"
+        }
+      ]
+    }
+  ]
+}
