@@ -428,6 +428,8 @@ function showSettingsView() {
     if (publicProfileView) publicProfileView.classList.add('hidden');
     const adminView = document.getElementById('admin-view');
     if (adminView) adminView.classList.add('hidden');
+    const pageView = document.getElementById('page-view');
+    if (pageView) pageView.classList.add('hidden');
     mainContent.classList.add('settings-mode');
     mainContent.style.padding = '';
     if (mainScreen) mainScreen.classList.add('settings-mode');
@@ -9290,6 +9292,7 @@ function showAdminView() {
     document.getElementById('settings-view').classList.add('hidden');
     document.getElementById('cantinho-view').classList.add('hidden');
     document.getElementById('public-profile-view').classList.add('hidden');
+    document.getElementById('page-view').classList.add('hidden');
 
     // Mostrar admin view
     const adminView = document.getElementById('admin-view');
