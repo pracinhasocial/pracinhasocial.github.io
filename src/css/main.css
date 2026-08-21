@@ -3230,7 +3230,7 @@ textarea {
     border-top: 1px solid var(--border-color);
     justify-content: space-around;
     align-items: center;
-    z-index: 99999 !important;
+    z-index: 1000;
     width: 100%;
     box-sizing: border-box;
     padding: 0;
@@ -3936,7 +3936,7 @@ textarea {
 .modal {
     position: fixed;
     inset: 0;
-    z-index: 2000;
+    z-index: 10000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5468,6 +5468,33 @@ textarea {
 
     .feed-view .sidebar-left,
     .feed-view .sidebar-right {
+        display: none !important;
+    }
+
+    .feed-view.show-post-form .sidebar-left {
+        display: block !important;
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        bottom: 60px;
+        z-index: 9999;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 16px;
+        overflow-y: auto;
+    }
+
+    .feed-view.show-post-form .sidebar-left .post-assunto {
+        position: relative;
+        z-index: 10000;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        padding: 16px;
+        margin: 0 auto;
+        max-width: 500px;
+    }
+
+    .feed-view.show-post-form .sidebar-left > *:not(.post-assunto):not(.close-post-form-btn) {
         display: none !important;
     }
 

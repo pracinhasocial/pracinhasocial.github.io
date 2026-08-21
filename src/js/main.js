@@ -1843,11 +1843,45 @@ function setupEventListeners() {
             e.preventDefault();
             closeAddActionModal();
             showFeedView();
+            
+            // Mostrar formulário de postagem em mobile
+            const feedView = document.getElementById('feed-view');
+            if (feedView) {
+                feedView.classList.add('show-post-form');
+            }
+            
             const assuntoText = document.getElementById('assunto-text');
             if (assuntoText) {
                 assuntoText.focus();
             }
         });
+    }
+
+    // Botão para fechar formulário de postagem em mobile
+    const closePostFormBtn = document.getElementById('close-post-form-btn');
+    if (closePostFormBtn) {
+        closePostFormBtn.addEventListener('click', () => {
+            const feedView = document.getElementById('feed-view');
+            if (feedView) {
+                feedView.classList.remove('show-post-form');
+            }
+        });
+    }
+
+    // Mostrar botão de fechar quando formulário estiver ativo em mobile
+    const feedView = document.getElementById('feed-view');
+    if (feedView) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    const isShowPostForm = feedView.classList.contains('show-post-form');
+                    if (closePostFormBtn) {
+                        closePostFormBtn.classList.toggle('hidden', !isShowPostForm);
+                    }
+                }
+            });
+        });
+        observer.observe(feedView, { attributes: true });
     }
     const addActionStatus = document.getElementById('add-action-status');
     if (addActionStatus) {
@@ -2755,17 +2789,16 @@ async function handlePostarAssunto() {
         updateSelectedTagChoice('');
 
         // Limpar preview de imagem
-        selectedAssuntoImageFile = null;
-        const previewContainer = document.getElementById('composer-image-preview');
+        const preview = document.getElementById('composer-image-preview');
         const previewImg = document.getElementById('composer-preview-img');
-        if (previewContainer) previewContainer.classList.add('hidden');
+        if (preview) preview.classList.add('hidden');
         if (previewImg) previewImg.src = '';
-        const fileInput = document.getElementById('assunto-imagem-upload');
-        if (fileInput) fileInput.value = '';
 
-        // Limpar checkbox de aviso admin
-        const avisoAdminCheckbox = document.getElementById('assunto-aviso-admin');
-        if (avisoAdminCheckbox) avisoAdminCheckbox.checked = false;
+        // Esconder formulário de postagem em mobile
+        const feedView = document.getElementById('feed-view');
+        if (feedView) {
+            feedView.classList.remove('show-post-form');
+        }
 
         // Recarregar feed
         loadFeed();

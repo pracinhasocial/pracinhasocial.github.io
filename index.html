@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP removida - Neocities pode ter suas próprias configurações de segurança -->
     <title>Pracinha</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -158,6 +159,9 @@
                 <div id="feed-view" class="feed-view hidden">
                     <!-- Coluna Esquerda -->
                     <aside class="sidebar-left">
+                        <!-- Botão fechar formulário mobile -->
+                        <button class="close-post-form-btn hidden" id="close-post-form-btn" aria-label="Fechar">×</button>
+                        
                         <!-- Barra para postar assunto -->
                         <div class="post-assunto">
                             <div class="post-assunto-header">
