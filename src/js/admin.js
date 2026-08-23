@@ -7,6 +7,69 @@ const requestsContainer = document.getElementById('admin-requests');
 const feedback = document.getElementById('admin-feedback');
 const userLabel = document.getElementById('admin-user-label');
 
+// --- Configurações do Site ---
+
+async function getSiteConfig(key) {
+    const { data, error } = await supabase
+        .from('site_config')
+        .select('value')
+        .eq('key', key)
+        .maybeSingle();
+    if (error) { console.error('getSiteConfig error:', error); return null; }
+    return data?.value ?? null;
+}
+
+async function setSiteConfig(key, value) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+        .from('site_config')
+        .upsert({ key, value, updated_at: new Date().toISOString(), updated_by: user?.id }, { onConflict: 'key' });
+    if (error) throw error;
+}
+
+async function loadSiteConfigSection() {
+    // Contador de contas
+    const totalEl = document.getElementById('stat-siteconfig-total-users');
+    if (totalEl) {
+        const { count, error } = await supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true });
+        totalEl.textContent = error ? '–' : (count ?? 0);
+    }
+
+    // Toggle de cadastro
+    const toggle = document.getElementById('toggle-signup-enabled');
+    const label = document.getElementById('toggle-signup-label');
+    const feedbackEl = document.getElementById('siteconfig-feedback');
+    if (!toggle) return;
+
+    const currentVal = await getSiteConfig('signup_enabled');
+    const enabled = currentVal !== 'false';
+    toggle.checked = enabled;
+    if (label) label.textContent = enabled ? 'Cadastro aberto' : 'Cadastro fechado';
+
+    toggle.addEventListener('change', async () => {
+        const newVal = toggle.checked ? 'true' : 'false';
+        try {
+            await setSiteConfig('signup_enabled', newVal);
+            if (label) label.textContent = toggle.checked ? 'Cadastro aberto' : 'Cadastro fechado';
+            if (feedbackEl) {
+                feedbackEl.textContent = toggle.checked
+                    ? '✓ Cadastro aberto. O botão "Criar conta" está visível na tela inicial.'
+                    : '✓ Cadastro fechado. O botão "Criar conta" foi ocultado da tela inicial.';
+                feedbackEl.style.color = 'var(--color-success, #16a34a)';
+            }
+        } catch (err) {
+            console.error(err);
+            toggle.checked = !toggle.checked; // reverter visualmente
+            if (feedbackEl) {
+                feedbackEl.textContent = '✗ Erro ao salvar configuração. Tente novamente.';
+                feedbackEl.style.color = 'var(--color-error, #dc2626)';
+            }
+        }
+    });
+}
+
 function showFeedback(message, isError = false) {
     if (!feedback) return;
     feedback.textContent = message;
@@ -159,7 +222,10 @@ async function start() {
         }
 
         userLabel.textContent = `Conectado como ${user.email}`;
-        await loadRequests();
+        await Promise.all([
+            loadRequests(),
+            loadSiteConfigSection()
+        ]);
     } catch (error) {
         console.error(error);
         userLabel.textContent = 'Erro ao verificar permissões.';

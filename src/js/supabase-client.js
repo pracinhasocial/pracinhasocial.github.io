@@ -746,3 +746,32 @@ export async function updateUserProfile(userId, profileData) {
 
   return data;
 }
+
+// Funções de configuração do site
+export async function getSiteConfig(key) {
+  const { data, error } = await supabase
+    .from('site_config')
+    .select('value')
+    .eq('key', key)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Erro ao buscar site_config:', error);
+    return null;
+  }
+
+  return data?.value ?? null;
+}
+
+export async function setSiteConfig(key, value, userId) {
+  const { error } = await supabase
+    .from('site_config')
+    .upsert({ key, value, updated_at: new Date().toISOString(), updated_by: userId }, { onConflict: 'key' });
+
+  if (error) {
+    console.error('Erro ao salvar site_config:', error);
+    throw error;
+  }
+
+  return true;
+}

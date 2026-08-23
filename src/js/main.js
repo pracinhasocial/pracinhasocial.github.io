@@ -53,6 +53,8 @@ let currentTagPage = 0;
 let tagsPerPage = 10; // 5 por coluna x 2 colunas
 let getAllProfiles = null;
 let updateUserProfile = null;
+let getSiteConfig = null;
+let setSiteConfig = null;
 let currentLanguageFilter = 'all';
 let currentTagFilter = 'all';
 let currentContentFilter = 'all';
@@ -195,6 +197,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         deleteTag = supabaseModule.deleteTag;
         getAllProfiles = supabaseModule.getAllProfiles;
         updateUserProfile = supabaseModule.updateUserProfile;
+        getSiteConfig = supabaseModule.getSiteConfig;
+        setSiteConfig = supabaseModule.setSiteConfig;
 
         // Expor variáveis globais imediatamente após carregar Supabase
         window.updateUserProfile = updateUserProfile;
@@ -287,10 +291,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Configurar edição inline
     setupInlineEditing();
-
-    if (pendingInviteToken) {
-        showScreen('signup');
-    }
 });
 
 // Mostrar tela específica
@@ -995,15 +995,26 @@ function setupEventListeners() {
         });
     }
 
-    const btnRequestAccess = document.getElementById('btn-request-access');
-    if (btnRequestAccess) btnRequestAccess.addEventListener('click', openBetaAccessModal);
+    // Botão "Criar conta" na landing — controlado pelo toggle do admin
+    const btnSignupLanding = document.getElementById('btn-signup-landing');
+    if (btnSignupLanding) {
+        btnSignupLanding.addEventListener('click', () => showScreen('signup'));
+        // Verificar se cadastro está habilitado
+        if (getSiteConfig) {
+            getSiteConfig('signup_enabled').then(val => {
+                if (val === 'false') {
+                    btnSignupLanding.style.display = 'none';
+                }
+            }).catch(() => {});
+        }
+    }
 
-    // Navegação entre login e signup
-    const loginRequestAccess = document.getElementById('login-request-access');
-    if (loginRequestAccess) {
-        loginRequestAccess.addEventListener('click', (e) => {
+    // Link "Criar conta" dentro da tela de login
+    const loginGoSignup = document.getElementById('login-go-signup');
+    if (loginGoSignup) {
+        loginGoSignup.addEventListener('click', (e) => {
             e.preventDefault();
-            openBetaAccessModal();
+            showScreen('signup');
         });
     }
 
@@ -2528,48 +2539,6 @@ async function handleSignup() {
         return;
     }
 
-    // Verificar se tem token de acesso na URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const accessToken = urlParams.get('token');
-
-    if (!accessToken) {
-        alert(t('error.signupInviteOnly', currentLanguage));
-        showScreen('landing');
-        return;
-    }
-
-    // Validar token de acesso no banco de dados
-    try {
-        const { data: accessRequest, error: accessError } = await supabase
-            .from('access_requests')
-            .select('*')
-            .eq('access_token', accessToken)
-            .is('used_at', null)
-            .gt('expires_at', new Date().toISOString())
-            .single();
-
-        if (accessError || !accessRequest) {
-            alert(t('error.invalidAccessLink', currentLanguage));
-            showScreen('landing');
-            return;
-        }
-
-        // Marcar token como usado
-        const { error: updateError } = await supabase
-            .from('access_requests')
-            .update({ used_at: new Date().toISOString() })
-            .eq('id', accessRequest.id);
-
-        if (updateError) {
-            console.error('Erro ao marcar token como usado:', updateError);
-        }
-    } catch (error) {
-        console.error('Erro ao validar token de acesso:', error);
-        alert(t('error.validateToken', currentLanguage));
-        showScreen('landing');
-        return;
-    }
-
     const apelido = document.getElementById('signup-apelido').value;
     const name = document.getElementById('signup-name').value;
     const username = document.getElementById('signup-username').value;
@@ -2578,7 +2547,19 @@ async function handleSignup() {
     const confirmPassword = document.getElementById('signup-confirm-password').value;
     const terms = document.getElementById('signup-terms').checked;
 
-    console.log('Dados do formulário:', { apelido, name, username, email, terms });
+    // Verificar se cadastro está habilitado
+    if (getSiteConfig) {
+        try {
+            const signupEnabled = await getSiteConfig('signup_enabled');
+            if (signupEnabled === 'false') {
+                alert('O cadastro está temporariamente desabilitado. Tente novamente mais tarde.');
+                showScreen('landing');
+                return;
+            }
+        } catch (e) {
+            // Se não conseguir ler, permite continuar
+        }
+    }
 
     if (!validateUsername(username)) {
         alert(t('error.usernameFormat', currentLanguage));
@@ -2612,8 +2593,7 @@ async function handleSignup() {
                     apelido: apelido,
                     nome: name,
                     username: username,
-                    idioma: currentLanguage,
-                    access_token: accessToken
+                    idioma: currentLanguage
                 }
             }
         });
@@ -2623,9 +2603,6 @@ async function handleSignup() {
         if (error) throw error;
 
         alert(t('success.accountCreated', currentLanguage));
-
-        // Limpar token da URL
-        window.history.replaceState({}, document.title, window.location.pathname);
         showScreen('login');
     } catch (error) {
         console.error('Erro no cadastro:', error.message);
@@ -2870,6 +2847,74 @@ async function loadAdminAvisos() {
 // Funções para gerenciar páginas no painel admin
 let paginaCurrentLang = 'pt'; // Estado para controlar o idioma atual no modal
 
+// ---- Seção: Configurações do Site ----
+let _siteconfigToggleInitialized = false;
+
+async function loadAdminSiteConfig() {
+    // Contador de contas totais
+    const totalEl = document.getElementById('stat-siteconfig-total-users');
+    if (totalEl && supabase) {
+        const { count, error } = await supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true });
+        totalEl.textContent = error ? '–' : (count ?? 0);
+    }
+
+    // Toggle de cadastro — inicializar só uma vez
+    if (_siteconfigToggleInitialized) return;
+    _siteconfigToggleInitialized = true;
+
+    const toggle = document.getElementById('toggle-signup-enabled');
+    const label = document.getElementById('toggle-signup-label');
+    const feedbackEl = document.getElementById('siteconfig-feedback');
+    if (!toggle || !supabase) return;
+
+    // Ler valor atual
+    try {
+        const { data } = await supabase
+            .from('site_config')
+            .select('value')
+            .eq('key', 'signup_enabled')
+            .maybeSingle();
+        const enabled = data?.value !== 'false';
+        toggle.checked = enabled;
+        if (label) label.textContent = enabled ? 'Cadastro aberto' : 'Cadastro fechado';
+    } catch (e) {
+        console.error('Erro ao ler site_config:', e);
+    }
+
+    toggle.addEventListener('change', async () => {
+        const newVal = toggle.checked ? 'true' : 'false';
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { error } = await supabase
+                .from('site_config')
+                .upsert(
+                    { key: 'signup_enabled', value: newVal, updated_at: new Date().toISOString(), updated_by: user?.id },
+                    { onConflict: 'key' }
+                );
+            if (error) throw error;
+
+            if (label) label.textContent = toggle.checked ? 'Cadastro aberto' : 'Cadastro fechado';
+            if (feedbackEl) {
+                feedbackEl.textContent = toggle.checked
+                    ? '✓ Cadastro aberto. O botão "Criar conta" está visível na tela inicial.'
+                    : '✓ Cadastro fechado. O botão "Criar conta" foi ocultado da tela inicial.';
+                feedbackEl.style.color = 'var(--color-success, #16a34a)';
+                setTimeout(() => { feedbackEl.textContent = ''; }, 4000);
+            }
+        } catch (err) {
+            console.error('Erro ao salvar site_config:', err);
+            toggle.checked = !toggle.checked; // reverter
+            if (feedbackEl) {
+                feedbackEl.textContent = '✗ Erro ao salvar configuração.';
+                feedbackEl.style.color = 'var(--color-error, #dc2626)';
+            }
+        }
+    });
+}
+
+// ---- Seção: Páginas ----
 async function loadAdminPaginas() {
     const paginasList = document.getElementById('admin-paginas-list');
     if (!paginasList || !supabase) return;
@@ -10255,6 +10300,7 @@ function setupAdminNavigation() {
             if (section === 'tags') loadAdminTags();
             if (section === 'anuncios') loadAdminAnuncios();
             if (section === 'paginas') loadAdminPaginas();
+            if (section === 'siteconfig') loadAdminSiteConfig();
         });
     });
 

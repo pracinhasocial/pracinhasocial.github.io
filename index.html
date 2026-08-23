@@ -63,7 +63,7 @@
                         <div class="auth-buttons">
                             <button class="btn btn-primary btn-large" id="btn-login"
                                 data-i18n="btn.login">Entrar</button>
-                            <button class="btn btn-secondary btn-large" id="btn-request-access" type="button">Pedir acesso</button>
+                            <button class="btn btn-secondary btn-large" id="btn-signup-landing" type="button" data-i18n="btn.signup">Criar conta</button>
                         </div>
                     </div>
                 </div>
@@ -92,7 +92,7 @@
                     <button type="submit" class="btn btn-primary btn-full" data-i18n="btn.login">Entrar</button>
                     <div class="auth-links">
                         <a href="#" id="forgot-password" data-i18n="link.forgotPassword">Esqueci a senha</a>
-                        <a href="#" id="login-request-access">Pedir acesso</a>
+                        <a href="#" id="login-go-signup" data-i18n="link.noAccount">Criar conta</a>
                     </div>
                 </form>
             </div>
@@ -109,7 +109,6 @@
                     <h1 class="logo-text">Pracinha</h1>
                 </div>
                 <form id="signup-form" class="auth-form">
-                    <p class="invite-required-message" id="invite-required-message">Você está entrando por um convite válido da Pracinha.</p>
                     <div class="form-group">
                         <label for="signup-apelido">Apelido</label>
                         <input type="text" id="signup-apelido" placeholder="Como você quer ser chamado?" required>
@@ -507,6 +506,13 @@
                                     </svg>
                                     Acessos
                                 </button>
+                                <button class="admin-nav-btn admin-only" data-admin-section="siteconfig">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                    </svg>
+                                    Site
+                                </button>
                             </nav>
                         </div>
                     </aside>
@@ -660,6 +666,36 @@
                                 <button class="btn btn-primary btn-small" id="admin-create-pagina" type="button">Criar Página</button>
                             </div>
                             <div id="admin-paginas-list"></div>
+                        </section>
+
+                        <!-- Seção Configurações do Site -->
+                        <section id="admin-siteconfig" class="admin-section">
+                            <h1 class="admin-section-title">Configurações do Site</h1>
+
+                            <!-- Contador de contas -->
+                            <div class="admin-stats" style="margin-bottom: 32px;">
+                                <div class="stat-card">
+                                    <h3 class="stat-title">Total de Contas</h3>
+                                    <p class="stat-value" id="stat-siteconfig-total-users">-</p>
+                                </div>
+                            </div>
+
+                            <!-- Toggle de cadastro -->
+                            <div class="sidebar-card" style="max-width: 480px; padding: 24px;">
+                                <h3 class="card-title" style="margin-bottom: 8px;">Cadastro de novos usuários</h3>
+                                <p class="admin-info-text" style="margin-bottom: 16px;">
+                                    Quando desativado, o botão "Criar conta" some da tela inicial e ninguém consegue se cadastrar.
+                                </p>
+                                <div style="display: flex; align-items: center; gap: 16px;">
+                                    <label class="toggle-label" for="toggle-signup-enabled" style="cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                                        <div class="checkbox-wrapper-2">
+                                            <input type="checkbox" id="toggle-signup-enabled" class="ikxBAC" checked>
+                                        </div>
+                                        <span id="toggle-signup-label">Cadastro aberto</span>
+                                    </label>
+                                </div>
+                                <p class="admin-info-text" style="margin-top: 12px; font-size: 12px; color: var(--text-secondary);" id="siteconfig-feedback"></p>
+                            </div>
                         </section>
 
                         <!-- Seção Acessos -->
