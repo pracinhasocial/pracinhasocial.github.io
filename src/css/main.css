@@ -7839,3 +7839,44 @@ textarea {
 .maintenance-emoji {
     font-size: 32px;
 }
+
+/* =====================================================
+   Teclado virtual mobile — campos sempre visíveis
+   ===================================================== */
+
+/*
+  Em iOS Safari, "interactive-widget: resizes-content" faz a viewport
+  encolher quando o teclado abre, permitindo que o scroll do JS funcione.
+  Em Android Chrome isso já é o comportamento padrão.
+*/
+@supports (height: 100dvh) {
+    .auth-screen,
+    .landing-screen {
+        min-height: 100dvh;
+    }
+}
+
+/*
+  Garante que os formulários de login/signup possam ser rolados
+  quando o teclado toma espaço na tela.
+*/
+@media (max-width: 768px) {
+    .auth-screen {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .auth-form,
+    .login-form,
+    .signup-form {
+        /* Padding extra no fundo para o último campo não ficar colado ao teclado */
+        padding-bottom: env(keyboard-inset-height, 24px);
+    }
+
+    /* Impede que input com foco seja coberto pelo teclado no iOS */
+    input:focus,
+    textarea:focus,
+    select:focus {
+        scroll-margin-bottom: 80px;
+    }
+}

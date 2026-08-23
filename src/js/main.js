@@ -134,6 +134,60 @@ const settingsView = document.getElementById('settings-view');
 const cantinhoView = document.getElementById('cantinho-view');
 const mainContent = document.getElementById('main-content');
 
+// Mantém campos de input/textarea visíveis acima do teclado virtual no mobile.
+// Usa a Visual Viewport API quando disponível (Chrome/Android/Safari ≥ 13).
+// Fallback: scrollIntoView com bloco "center" para browsers mais antigos.
+function setupMobileKeyboardScroll() {
+    // Só roda em dispositivos de toque
+    if (!('ontouchstart' in window)) return;
+
+    const FIELDS = 'input, textarea, select, [contenteditable="true"]';
+
+    // --- Caminho 1: Visual Viewport API ---
+    if (window.visualViewport) {
+        let lastFocused = null;
+
+        document.addEventListener('focusin', (e) => {
+            if (e.target.matches(FIELDS)) {
+                lastFocused = e.target;
+            }
+        }, true);
+
+        document.addEventListener('focusout', () => {
+            lastFocused = null;
+        }, true);
+
+        window.visualViewport.addEventListener('resize', () => {
+            if (!lastFocused) return;
+
+            // Aguarda um frame para o browser recalcular o layout
+            requestAnimationFrame(() => {
+                const rect = lastFocused.getBoundingClientRect();
+                const vpHeight = window.visualViewport.height;
+                const GAP = 16; // espaço mínimo entre o campo e o teclado
+
+                // Se o campo está abaixo da área visível, rola
+                if (rect.bottom > vpHeight - GAP) {
+                    const scrollBy = rect.bottom - (vpHeight - GAP);
+                    window.scrollBy({ top: scrollBy, behavior: 'smooth' });
+                }
+            });
+        });
+
+        return;
+    }
+
+    // --- Caminho 2: fallback via scrollIntoView ---
+    document.addEventListener('focusin', (e) => {
+        if (!e.target.matches(FIELDS)) return;
+
+        // Pequeno delay para o teclado terminar de subir
+        setTimeout(() => {
+            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    }, true);
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     // Injetar header
@@ -159,6 +213,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Inicializar PWA install prompt
     initPWAInstall();
+
+    // Rolar campo focado para cima do teclado virtual (mobile)
+    setupMobileKeyboardScroll();
 
     // Inicializar navegação mobile para Cantinho e Perfil Público
     initMobileNavigation();
