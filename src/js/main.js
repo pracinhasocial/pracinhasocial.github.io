@@ -2008,9 +2008,13 @@ function setupEventListeners() {
             }
 
             try {
-                // Compressão client-side para WebP
-                const compressedFile = await compressImageToWebP(file, 0.82);
-                await uploadUserPhoto(compressedFile);
+                // Abre o modal de crop (igual ao fluxo do header) e atualiza só o perfil
+                const croppedBlob = await openAvatarCropModal(file);
+                if (!croppedBlob) {
+                    avatarUploadSettingsInput.value = '';
+                    return;
+                }
+                await uploadProfilePhoto(croppedBlob);
                 avatarUploadSettingsInput.value = '';
             } catch (error) {
                 console.error('Erro ao fazer upload da foto:', error);
