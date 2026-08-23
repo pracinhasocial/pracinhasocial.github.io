@@ -1769,12 +1769,20 @@ function setupEventListeners() {
     const feedContent = document.getElementById('feed-content');
     const onlineVisitorsList = document.getElementById('online-visitors-list');
     const cantinhoOnlineVisitorsList = document.getElementById('cantinho-online-visitors-list');
+    const cantinhoFeedContent = document.getElementById('cantinho-feed-content');
     const adminAvisos = document.getElementById('admin-avisos');
     if (feedContent) {
         feedContent.addEventListener('click', handleFeedInteraction);
         feedContent.addEventListener('submit', handleFeedSubmit);
         feedContent.addEventListener('mouseover', handleMentionHover);
         feedContent.addEventListener('mouseout', handleMentionLeave);
+    }
+
+    if (cantinhoFeedContent) {
+        cantinhoFeedContent.addEventListener('click', handleFeedInteraction);
+        cantinhoFeedContent.addEventListener('submit', handleFeedSubmit);
+        cantinhoFeedContent.addEventListener('mouseover', handleMentionHover);
+        cantinhoFeedContent.addEventListener('mouseout', handleMentionLeave);
     }
 
     if (onlineVisitorsList) {
@@ -3790,11 +3798,53 @@ async function loadFeed() {
             return;
         }
 
-        const feedHtml = await Promise.all(data.map(async assunto => {
-            return await createAssuntoCard(assunto);
-        }));
+        // Buscar status recentes e misturar com os assuntos
+        let recentStatuses = [];
+        try {
+            if (getRecentStatuses) {
+                recentStatuses = await getRecentStatuses() || [];
+            }
+        } catch (e) {
+            // Status não críticos — continua sem eles
+        }
 
-        feedContent.innerHTML = feedHtml.join('');
+        // Filtrar status pelo filtro de conteúdo
+        const showStatuses = currentContentFilter === 'all' || currentContentFilter === 'status';
+        const showPosts    = currentContentFilter === 'all' || currentContentFilter === 'assuntos';
+
+        // Montar lista combinada com tipo + data para ordenação
+        const feedItems = [];
+
+        if (showStatuses) {
+            recentStatuses.forEach(status => {
+                feedItems.push({
+                    type: 'status',
+                    data: status,
+                    date: new Date(status.updated_at || status.created_at)
+                });
+            });
+        }
+
+        if (showPosts) {
+            data.forEach(assunto => {
+                feedItems.push({
+                    type: 'assunto',
+                    data: assunto,
+                    date: new Date(assunto.criado_em)
+                });
+            });
+        }
+
+        // Ordenar por data decrescente
+        feedItems.sort((a, b) => b.date - a.date);
+
+        if (feedItems.length === 0) {
+            feedContent.classList.remove('is-updating');
+            feedContent.innerHTML = `<p class="feed-empty">${t('feed.empty', currentLanguage)}</p>`;
+            return;
+        }
+
+        await renderMixedFeed(feedItems, feedContent);
         feedContent.classList.remove('is-updating');
 
         // Restaurar posição de scroll se possível
@@ -5502,8 +5552,8 @@ async function loadFeedWithPost(postId) {
     feedContent.innerHTML = cards.join('');
             }
 
-            async function renderMixedFeed(feedItems) {
-    const feedContent = document.getElementById('feed-content');
+            async function renderMixedFeed(feedItems, container) {
+    const feedContent = container || document.getElementById('feed-content');
 
     if (!feedItems || feedItems.length === 0) {
         feedContent.innerHTML = '<p class="feed-empty">Nenhum assunto encontrado. Seja o primeiro a postar!</p>';
@@ -7428,6 +7478,39 @@ function goToSettings() {
     }
             }
 
+            // Fecha todos os dropdowns/menus flutuantes do site de uma vez
+            function closeAllDropdowns() {
+    // Dropdowns de opções dos cards (três pontinhos)
+    document.querySelectorAll('.options-dropdown-menu').forEach(m => m.classList.add('hidden'));
+
+    // Filtros do feed
+    document.querySelectorAll('.feed-filter-group.open').forEach(g => {
+        g.classList.remove('open');
+        g.querySelector('.feed-filter-trigger')?.setAttribute('aria-expanded', 'false');
+    });
+
+    // Notificações
+    const notifDropdown = document.getElementById('notifications-dropdown');
+    if (notifDropdown) {
+        notifDropdown.classList.remove('show');
+        notifDropdown.style.display = 'none';
+    }
+
+    // Avatar dropdown
+    const avatarDropdown = document.getElementById('avatar-dropdown');
+    if (avatarDropdown) avatarDropdown.classList.remove('show');
+
+    // Mobile menu dropdown
+    const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+    if (mobileMenuDropdown) {
+        mobileMenuDropdown.classList.remove('show');
+        mobileMenuDropdown.style.display = 'none';
+    }
+
+    // Emoji picker
+    document.getElementById('emoji-picker')?.classList.add('hidden');
+            }
+
             function toggleNotificationsDropdown() {
     const dropdown = document.getElementById('notifications-dropdown');
     const avatarDropdown = document.getElementById('avatar-dropdown');
@@ -8520,12 +8603,35 @@ async function loadCantinhoData(profile) {
             const { getUserAssuntos } = await import('./supabase-client.js');
             const assuntos = await getUserAssuntos(profile.id);
 
-            if (assuntos.length === 0) {
+            // Buscar status do usuário para misturar
+            let userStatuses = [];
+            try {
+                if (getUserStatuses) {
+                    userStatuses = await getUserStatuses(profile.id) || [];
+                    // Enriquecer com dados do perfil para createStatusCard funcionar
+                    userStatuses = userStatuses.map(s => ({ ...s, profiles: profile }));
+                }
+            } catch (e) { /* não crítico */ }
+
+            // Montar lista combinada
+            const feedItems = [];
+            userStatuses.forEach(s => feedItems.push({
+                type: 'status',
+                data: s,
+                date: new Date(s.updated_at || s.created_at)
+            }));
+            assuntos.forEach(a => feedItems.push({
+                type: 'assunto',
+                data: a,
+                date: new Date(a.criado_em)
+            }));
+
+            feedItems.sort((a, b) => b.date - a.date);
+
+            if (feedItems.length === 0) {
                 cantinhoFeedContent.innerHTML = '<p class="feed-loading">' + t('feed.noPostsYet', currentLanguage) + '</p>';
             } else {
-                // Renderizar assuntos (reutilizar a lógica de renderização do feed)
-                const cards = await Promise.all(assuntos.map(assunto => createAssuntoCard(assunto, profile)));
-                cantinhoFeedContent.innerHTML = cards.join('');
+                await renderMixedFeed(feedItems, cantinhoFeedContent);
             }
         } catch (error) {
             console.error('Erro ao carregar assuntos do usuário:', error);
@@ -10701,6 +10807,7 @@ export function initHeaderElements() {
                     dropdown.style.display = 'none';
                     dropdown.classList.remove('show');
                 } else {
+                    closeAllDropdowns(); // fecha tudo antes de abrir
                     dropdown.style.display = 'flex';
                     dropdown.classList.add('show');
                     loadNotifications();
@@ -10841,6 +10948,7 @@ export function initHeaderElements() {
                 mobileMenuDropdown.classList.remove('show');
                 mobileMenuDropdown.style.display = 'none';
             } else {
+                closeAllDropdowns(); // fecha tudo antes de abrir
                 mobileMenuDropdown.classList.add('show');
                 mobileMenuDropdown.style.display = 'flex';
             }
