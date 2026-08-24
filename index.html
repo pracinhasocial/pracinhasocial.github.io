@@ -82,8 +82,8 @@
                 </div>
                 <form id="login-form" class="auth-form">
                     <div class="form-group">
-                        <label for="login-email" data-i18n="label.email">Email</label>
-                        <input type="email" id="login-email" required>
+                        <label for="login-email" data-i18n="label.emailOrUsername">Email ou usuário</label>
+                        <input type="text" id="login-email" autocomplete="username" required>
                     </div>
                     <div class="form-group">
                         <label for="login-password" data-i18n="label.password">Senha</label>
@@ -268,12 +268,11 @@
                             <button class="btn-text-link" id="btn-ver-todos-visitantes" data-i18n="sidebar.seeAll">Ver todos</button>
                         </div>
 
-                        <!-- Bloco Assuntos de hoje -->
+                        <!-- Bloco Assuntos da semana -->
                         <div class="sidebar-card tags-card">
-                            <h3 class="card-title" data-i18n="sidebar.todayTopics">Assuntos de hoje</h3>
+                            <h3 class="card-title" data-i18n="sidebar.weekTopics">Assuntos da semana</h3>
                             <div class="tags-container" id="sidebar-tags-container">
-                                <button class="tag-btn active" data-tag="all">Todos</button>
-                                <!-- Tags serão preenchidas dinamicamente via JavaScript -->
+                                <!-- Tags preenchidas dinamicamente via JavaScript -->
                             </div>
                             <button class="btn-text-link" id="btn-ver-todos-assuntos" data-i18n="sidebar.seeAll">Ver todos os assuntos</button>
                         </div>
@@ -1121,6 +1120,7 @@
                                             <div class="bg-upload-section">
                                                 <label>ou fazer upload da sua imagem:</label>
                                                 <input type="file" id="bg-image-upload" accept="image/jpeg,image/png,image/webp,image/gif">
+                                                <input type="hidden" id="bg-image">
                                                 <div id="bg-image-preview" class="bg-image-preview hidden">
                                                     <img src="" alt="Preview">
                                                     <button type="button" class="btn-remove-bg-image" id="btn-remove-bg-image">Remover</button>
@@ -1414,16 +1414,11 @@
                             <button class="btn-text-link" id="btn-ver-todos-visitantes-cantinho">Ver todos</button>
                         </div>
 
-                        <!-- Bloco Assuntos de hoje -->
+                        <!-- Bloco Assuntos da semana -->
                         <div class="sidebar-card tags-card">
-                            <h3 class="card-title">Assuntos de hoje</h3>
+                            <h3 class="card-title">Assuntos da semana</h3>
                             <div class="tags-container" id="cantinho-sidebar-tags-container">
-                                <button class="tag-btn active" data-tag="all">Todos</button>
-                                <button class="tag-btn" data-tag="música">🎵 música</button>
-                                <button class="tag-btn" data-tag="jogos">🎮 jogos</button>
-                                <button class="tag-btn" data-tag="livros">📚 livros</button>
-                                <button class="tag-btn" data-tag="café">☕ café</button>
-                                <button class="tag-btn" data-tag="cotidiano">🌅 cotidiano</button>
+                                <!-- Tags preenchidas dinamicamente via JavaScript -->
                             </div>
                             <button class="btn-text-link" id="btn-ver-todos-assuntos">Ver todos os assuntos</button>
                         </div>
@@ -1613,16 +1608,11 @@
                                 <button class="btn-text-link" id="btn-ver-todos-visitantes">Ver todos</button>
                             </div>
 
-                            <!-- Bloco Assuntos de hoje -->
+                            <!-- Bloco Assuntos da semana -->
                             <div class="sidebar-card tags-card">
-                                <h3 class="card-title">Assuntos de hoje</h3>
+                                <h3 class="card-title">Assuntos da semana</h3>
                                 <div class="tags-container" id="sidebar-tags-container">
-                                    <button class="tag-btn active" data-tag="all">Todos</button>
-                                    <button class="tag-btn" data-tag="música">🎵 música</button>
-                                    <button class="tag-btn" data-tag="jogos">🎮 jogos</button>
-                                    <button class="tag-btn" data-tag="livros">📚 livros</button>
-                                    <button class="tag-btn" data-tag="café">☕ café</button>
-                                    <button class="tag-btn" data-tag="cotidiano">🌅 cotidiano</button>
+                                    <!-- Tags preenchidas dinamicamente via JavaScript -->
                                 </div>
                                 <button class="btn-text-link" id="btn-ver-todos-assuntos">Ver todos os assuntos</button>
                             </div>

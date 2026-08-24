@@ -350,6 +350,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupInlineEditing();
 });
 
+// Listener global: fecha todos os dropdowns ao clicar fora deles
+document.addEventListener('click', (e) => {
+    // Três pontos dos cards
+    if (!e.target.closest('.options-dropdown-container')) {
+        document.querySelectorAll('.options-dropdown-menu').forEach(m => m.classList.add('hidden'));
+    }
+
+    // Filtros do feed
+    if (!e.target.closest('.feed-filter-group')) {
+        document.querySelectorAll('.feed-filter-group.open').forEach(g => {
+            g.classList.remove('open');
+            g.querySelector('.feed-filter-trigger')?.setAttribute('aria-expanded', 'false');
+        });
+    }
+
+    // Notificações
+    const notifDropdown = document.getElementById('notifications-dropdown');
+    if (notifDropdown && !e.target.closest('#notifications-dropdown') && !e.target.closest('#btn-notifications')) {
+        notifDropdown.classList.remove('show');
+        notifDropdown.style.display = 'none';
+    }
+
+    // Avatar dropdown
+    const avatarDropdown = document.getElementById('avatar-dropdown');
+    if (avatarDropdown && !e.target.closest('#avatar-dropdown') && !e.target.closest('#header-avatar')) {
+        avatarDropdown.classList.remove('show');
+    }
+
+    // Mobile menu dropdown
+    const mobileMenuDropdown = document.getElementById('mobile-menu-dropdown');
+    if (mobileMenuDropdown && !e.target.closest('#mobile-menu-dropdown') && !e.target.closest('#mobile-menu-btn')) {
+        mobileMenuDropdown.classList.remove('show');
+        mobileMenuDropdown.style.display = 'none';
+    }
+
+    // Emoji picker
+    if (!e.target.closest('#emoji-picker') && !e.target.closest('.emoji-picker-btn')) {
+        document.getElementById('emoji-picker')?.classList.add('hidden');
+    }
+}, true); // capture=true para pegar antes dos stopPropagation internos
+
 // Mostrar tela específica
 function showScreen(screenName) {
     const tempStyle = document.getElementById('temp-loading-style');
@@ -1273,9 +1314,11 @@ function setupEventListeners() {
                 bgPresetGrid.querySelectorAll('.bg-preset-item').forEach(i => i.classList.remove('selected'));
                 // Adicionar seleção atual
                 item.classList.add('selected');
-                // Limpar upload customizado
+                // Limpar upload customizado e guardar caminho do preset no input hidden
                 if (bgImageUpload) bgImageUpload.value = '';
                 if (bgImagePreview) bgImagePreview.classList.add('hidden');
+                const bgImageInput = document.getElementById('bg-image');
+                if (bgImageInput) bgImageInput.value = item.dataset.preset;
 
                 // Aplicar preview do background
                 const presetPath = item.dataset.preset;
@@ -1295,13 +1338,11 @@ function setupEventListeners() {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Mostrar preview
+            // Mostrar preview imediato
             const reader = new FileReader();
             reader.onload = (event) => {
                 bgImagePreviewImg.src = event.target.result;
                 bgImagePreview.classList.remove('hidden');
-
-                // Aplicar preview do background
                 const body = document.body;
                 body.style.background = '';
                 body.style.backgroundImage = `url(${event.target.result})`;
@@ -1311,6 +1352,26 @@ function setupEventListeners() {
                 body.style.backgroundAttachment = 'fixed';
             };
             reader.readAsDataURL(file);
+
+            // Fazer upload para o storage e guardar a URL pública
+            try {
+                if (supabase && currentUser) {
+                    const ext = file.name.split('.').pop() || 'jpg';
+                    const filePath = `${currentUser.id}/bg-${Date.now()}.${ext}`;
+                    const { error: uploadError } = await supabase.storage
+                        .from('fotos')
+                        .upload(filePath, file, { upsert: true, contentType: file.type });
+
+                    if (!uploadError) {
+                        const { data: urlData } = supabase.storage.from('fotos').getPublicUrl(filePath);
+                        // Guardar URL no input hidden para o handleProfileUpdate ler
+                        const bgImageInput = document.getElementById('bg-image');
+                        if (bgImageInput) bgImageInput.value = urlData.publicUrl;
+                    }
+                }
+            } catch (err) {
+                console.error('Erro ao fazer upload da imagem de fundo:', err);
+            }
 
             // Remover seleção de imagem pré-definida
             if (bgPresetGrid) {
@@ -1774,27 +1835,19 @@ function setupEventListeners() {
     if (feedContent) {
         feedContent.addEventListener('click', handleFeedInteraction);
         feedContent.addEventListener('submit', handleFeedSubmit);
-        feedContent.addEventListener('mouseover', handleMentionHover);
-        feedContent.addEventListener('mouseout', handleMentionLeave);
     }
 
     if (cantinhoFeedContent) {
         cantinhoFeedContent.addEventListener('click', handleFeedInteraction);
         cantinhoFeedContent.addEventListener('submit', handleFeedSubmit);
-        cantinhoFeedContent.addEventListener('mouseover', handleMentionHover);
-        cantinhoFeedContent.addEventListener('mouseout', handleMentionLeave);
     }
 
     if (onlineVisitorsList) {
         onlineVisitorsList.addEventListener('click', handleFeedInteraction);
-        onlineVisitorsList.addEventListener('mouseover', handleMentionHover);
-        onlineVisitorsList.addEventListener('mouseout', handleMentionLeave);
     }
 
     if (cantinhoOnlineVisitorsList) {
         cantinhoOnlineVisitorsList.addEventListener('click', handleFeedInteraction);
-        cantinhoOnlineVisitorsList.addEventListener('mouseover', handleMentionHover);
-        cantinhoOnlineVisitorsList.addEventListener('mouseout', handleMentionLeave);
     }
 
     if (adminAvisos) {
@@ -2235,8 +2288,32 @@ async function handleLogin() {
         return;
     }
 
-    const email = document.getElementById('login-email').value;
+    const emailOrUsername = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
+
+    // Detectar se é username (não contém @) ou email
+    let email = emailOrUsername;
+    const isUsername = !emailOrUsername.includes('@');
+
+    if (isUsername) {
+        // Buscar o email correspondente ao username na tabela profiles
+        const username = emailOrUsername.startsWith('@')
+            ? emailOrUsername.slice(1)
+            : emailOrUsername;
+
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('username', username)
+            .maybeSingle();
+
+        if (profileError || !profile) {
+            alert('Usuário não encontrado. Verifique o nome de usuário ou use seu email.');
+            return;
+        }
+
+        email = profile.email;
+    }
 
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -3844,6 +3921,9 @@ async function loadFeed() {
             return;
         }
 
+        // Atualizar sidebar de tags da semana com os dados já buscados (sem query extra)
+        renderTrendingTopics(data || [], 'sidebar-tags-container');
+
         await renderMixedFeed(feedItems, feedContent);
         feedContent.classList.remove('is-updating');
 
@@ -4360,7 +4440,8 @@ async function loadFeedWithPost(postId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    // Janela de 7 dias
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const tagCounts = new Map();
 
     [...(assuntos || [])]
@@ -4374,21 +4455,64 @@ async function loadFeedWithPost(postId) {
             tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
         });
 
+    // Ordenar por frequência, pegar top 8
     const trending = [...tagCounts.entries()]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .slice(0, 5)
-        .map(([tag]) => ({ tag }));
+        .slice(0, 8)
+        .map(([tag, count]) => ({ tag, count }));
 
     if (!trending.length) {
-        container.innerHTML = '<p class="reply-empty">Nenhuma tag recente nas últimas 24h.</p>';
+        container.innerHTML = '<p class="reply-empty">Nenhuma tag usada esta semana.</p>';
         return;
     }
 
+    // Apenas as tags ordenadas por frequência, sem "Todos" e sem contador
     container.innerHTML = trending.map(item => `
         <button class="tag-btn" type="button" data-tag="${escapeHtml(item.tag)}">
             ${escapeHtml(getTagDisplay(item.tag))}
         </button>
     `).join('');
+
+    // Reativar listeners de filtro nas novas tags
+    container.querySelectorAll('.tag-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            container.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTagFilter = btn.dataset.tag;
+            updateFilterOptions('[data-tag-filter]', currentTagFilter);
+            loadFeed();
+        });
+    });
+            }
+
+            async function loadTrendingTopics(containerId = 'sidebar-tags-container', userId = null) {
+    if (!supabase) {
+        renderTrendingTopics([], containerId);
+        return;
+    }
+
+    try {
+        const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        let query = supabase
+            .from('assuntos')
+            .select('tag, criado_em')
+            .gte('criado_em', cutoff)
+            .not('tag', 'is', null)
+            .neq('tag', '')
+            .order('criado_em', { ascending: false });
+
+        // Se for o cantinho de um usuário específico, filtrar por autor
+        if (userId) {
+            query = query.eq('autor', userId);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        renderTrendingTopics(data || [], containerId);
+    } catch (error) {
+        console.error('Erro ao carregar assuntos da semana:', error);
+        renderTrendingTopics([], containerId);
+    }
             }
 
             function renderEmojiButton(target = '') {
@@ -4784,7 +4908,7 @@ async function loadFeedWithPost(postId) {
 
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, nome, username, fotos, recado, pais, bio')
+        .select('id, nome, username, fotos, pais, bio')
         .eq('username', normalizedUsername)
         .maybeSingle();
 
@@ -4909,24 +5033,7 @@ async function loadFeedWithPost(postId) {
             }
 
             async function loadTrendingTopicsForCantinho() {
-    if (!supabase) {
-        renderTrendingTopics([], 'cantinho-sidebar-tags-container');
-        return;
-    }
-
-    try {
-        const { data, error } = await supabase
-            .from('assuntos')
-            .select('*')
-            .order('criado_em', { ascending: false })
-            .limit(100);
-
-        if (error) throw error;
-        renderTrendingTopics(data || [], 'cantinho-sidebar-tags-container');
-    } catch (error) {
-        console.error('Erro ao carregar assuntos de hoje no Cantinho:', error);
-        renderTrendingTopics([], 'cantinho-sidebar-tags-container');
-    }
+    await loadTrendingTopics('cantinho-sidebar-tags-container');
             }
 
             function stopOnlineVisitorsTracking() {
@@ -5023,8 +5130,7 @@ async function loadFeedWithPost(postId) {
     if (usernameEl) usernameEl.textContent = profile.username || username;
 
     const statusParts = [];
-    if (profile.recado) statusParts.push(`💬 ${profile.recado}`);
-    else if (profile.pais) statusParts.push(profile.pais);
+    if (profile.pais) statusParts.push(profile.pais);
     if (profile.bio) statusParts.push(profile.bio);
 
     if (statusEl) {
@@ -5820,7 +5926,10 @@ async function loadFeedWithPost(postId) {
         const dropdownId = dropdownBtn.dataset.dropdownId;
         const dropdownMenu = document.getElementById(dropdownId);
         if (dropdownMenu) {
-            dropdownMenu.classList.toggle('hidden');
+            const willOpen = dropdownMenu.classList.contains('hidden');
+            // Fechar todos os outros primeiro
+            document.querySelectorAll('.options-dropdown-menu').forEach(m => m.classList.add('hidden'));
+            if (willOpen) dropdownMenu.classList.remove('hidden');
         }
         return;
     }
@@ -6220,6 +6329,12 @@ async function loadFeedWithPost(postId) {
         if (bgColorInput) {
             bgColorInput.value = currentProfile.bg_color;
         }
+    }
+
+    // Popular input hidden com a URL de imagem salva (para não perder ao salvar sem mudar)
+    if (currentProfile.bg_image) {
+        const bgImageInput = document.getElementById('bg-image');
+        if (bgImageInput) bgImageInput.value = currentProfile.bg_image;
     }
             }
 
@@ -6666,7 +6781,7 @@ async function handleProfileUpdate(e) {
         if (local) profileData.local = local.value;
 
         const dataNascimento = document.getElementById('profile-data-nascimento');
-        if (dataNascimento) profileData.data_nascimento = dataNascimento.value;
+        if (dataNascimento) profileData.data_nascimento = dataNascimento.value || null;
 
         const pronomes = document.getElementById('profile-genero');
         if (pronomes) profileData.pronomes = pronomes.value;
@@ -7517,13 +7632,20 @@ function goToSettings() {
     if (!dropdown) return;
 
     const willOpen = !dropdown.classList.contains('show');
-    dropdown.classList.toggle('show');
-
-    if (avatarDropdown) avatarDropdown.classList.remove('show');
-
+    closeAllDropdowns();
     if (willOpen) {
+        dropdown.classList.add('show');
+        dropdown.style.display = 'flex';
         loadNotifications();
     }
+            }
+
+            function toggleAvatarDropdown() {
+    const dropdown = document.getElementById('avatar-dropdown');
+    if (!dropdown) return;
+    const willOpen = !dropdown.classList.contains('show');
+    closeAllDropdowns();
+    if (willOpen) dropdown.classList.add('show');
             }
 
             async function markNotificationRead(notificationId) {
@@ -8189,9 +8311,8 @@ function showCantinhoView() {
     // Atualizar navegação do header
     updateHeaderNavigation();
 
-    // Carregar visitantes online e assuntos de hoje para o Cantinho
+    // Carregar visitantes online para o Cantinho
     loadOnlineVisitorsForCantinho();
-    loadTrendingTopicsForCantinho();
 }
 
 function goToMyCantinho() {
@@ -8642,6 +8763,9 @@ async function loadCantinhoData(profile) {
     // Carregar assuntos fixados
     await loadPinnedAssuntos(profile.id);
 
+    // Assuntos da semana filtrados pelo dono do cantinho
+    loadTrendingTopics('cantinho-sidebar-tags-container', profile.id);
+
     // TODO: Carregar marquinhas
 }
 
@@ -8717,7 +8841,8 @@ function applyUserFonts(profile, containerSelector = null) {
     if (fontTitle) {
         document.documentElement.style.setProperty('--user-font-title', `'${fontTitle}', sans-serif`);
     } else {
-        document.documentElement.style.removeProperty('--user-font-title');
+        // Sem fonte de título escolhida: usar a fonte padrão do site (não herdar do corpo)
+        document.documentElement.style.setProperty('--user-font-title', `'Google Sans', system-ui, -apple-system, sans-serif`);
     }
 
     if (fontBody) {
@@ -8732,9 +8857,10 @@ function applyUserFonts(profile, containerSelector = null) {
     // Aplicar tamanho da fonte geral globalmente
     document.documentElement.style.setProperty('--user-body-font-size', `${bodyFontSize}px`);
 
-    // Aplicar fonte de título ao apelido (mas não ao header)
+    // Aplicar fonte de título apenas nos elementos de apelido do perfil/cantinho
+    // (não em .author-name/.reply-author — esses usam a CSS variable diretamente via CSS)
     if (fontTitle) {
-        document.querySelectorAll('.profile-apelido, .cantinho-apelido, #cantinho-apelido, .sidebar-right .profile-apelido-title, .author-name, .reply-author').forEach(el => {
+        document.querySelectorAll('.profile-apelido, .cantinho-apelido, #cantinho-apelido, .sidebar-right .profile-apelido-title').forEach(el => {
             el.style.setProperty('font-family', `'${fontTitle}', sans-serif`, 'important');
         });
     }
@@ -10700,7 +10826,7 @@ function updateSettingsProfilePreview() {
         username: document.getElementById('profile-username')?.value || currentProfile.username,
         bio: document.getElementById('profile-bio')?.value || currentProfile.bio,
         local: document.getElementById('profile-local')?.value || currentProfile.local,
-        data_nascimento: document.getElementById('profile-data-nascimento')?.value || currentProfile.data_nascimento,
+        data_nascimento: document.getElementById('profile-data-nascimento')?.value || currentProfile.data_nascimento || null,
         genero: document.getElementById('profile-genero')?.value || currentProfile.pronomes,
         sexualidade: document.getElementById('profile-sexualidade')?.value || currentProfile.sexualidade,
         site_url: document.getElementById('profile-site')?.value || currentProfile.site_url,

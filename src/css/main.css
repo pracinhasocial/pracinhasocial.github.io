@@ -963,6 +963,12 @@ textarea {
     position: sticky;
     z-index: 100;
     overflow: visible;
+    /* Fonte fixa: não herda a fonte geral escolhida pelo usuário */
+    font-family: 'Google Sans', system-ui, -apple-system, sans-serif !important;
+}
+
+.header * {
+    font-family: inherit !important;
 }
 
 .logo-small {
@@ -2526,6 +2532,7 @@ textarea {
     font-weight: 600;
     color: var(--text-primary);
     font-size: 15px;
+    font-family: var(--user-font-title, 'Google Sans', system-ui, -apple-system, sans-serif) !important;
 }
 
 .assunto-tag-row {
@@ -2764,6 +2771,7 @@ textarea {
     font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
+    font-family: var(--user-font-title, 'Google Sans', system-ui, -apple-system, sans-serif) !important;
 }
 
 .reply-time {

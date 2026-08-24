@@ -122,7 +122,6 @@ export function updateProfileCard(profile, prefix, options = {}) {
     const site = document.getElementById(`${prefix}-site`);
     const bio = document.getElementById(`${prefix}-bio`);
     const music = document.getElementById(`${prefix}-music`) || document.getElementById(`${prefix}-musica`);
-    const recado = document.getElementById(`${prefix}-recado`);
 
     // Atualizar avatar
     if (avatar) {
@@ -224,11 +223,6 @@ export function updateProfileCard(profile, prefix, options = {}) {
     // Atualizar música
     if (music) {
         music.textContent = profile.musica || '';
-    }
-
-    // Atualizar recado
-    if (recado) {
-        recado.textContent = profile.recado || '';
     }
 }
 
