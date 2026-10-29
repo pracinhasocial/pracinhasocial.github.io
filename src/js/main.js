@@ -18,6 +18,7 @@ let currentTheme = localStorage.getItem('pracinha-theme') || 'light';
 let currentUser = null;
 let currentProfile = null;
 let currentCantinhoProfileId = null;
+let currentPublicProfileId = null; // ID do usuário sendo visualizado no perfil público
 let isViewingOtherUsersCantinho = false;
 let supabase = null;
 let checkAuth = null;
@@ -49,8 +50,6 @@ let editingAssuntoId = null;
 let updateTag = null;
 let deleteTag = null;
 let tagsCache = null;
-let currentTagPage = 0;
-let tagsPerPage = 10; // 5 por coluna x 2 colunas
 let getAllProfiles = null;
 let updateUserProfile = null;
 let getSiteConfig = null;
@@ -350,9 +349,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupInlineEditing();
 });
 
-// Listener global: fecha todos os dropdowns ao clicar fora deles
+// Listener global: fecha todos os dropdowns ao clicar fora deles e lida com abertura
 document.addEventListener('click', (e) => {
-    // Três pontos dos cards
+    // Três pontos dos cards - abrir dropdown
+    const dropdownBtn = e.target.closest('.options-dropdown-btn');
+    if (dropdownBtn) {
+        e.stopPropagation();
+        e.preventDefault();
+        const dropdownId = dropdownBtn.dataset.dropdownId;
+        const dropdownMenu = document.getElementById(dropdownId);
+        if (dropdownMenu) {
+            const willOpen = dropdownMenu.classList.contains('hidden');
+            // Fechar todos os outros primeiro
+            document.querySelectorAll('.options-dropdown-menu').forEach(m => m.classList.add('hidden'));
+            if (willOpen) dropdownMenu.classList.remove('hidden');
+        }
+        return;
+    }
+
+    // Fechar dropdowns ao clicar fora
     if (!e.target.closest('.options-dropdown-container')) {
         document.querySelectorAll('.options-dropdown-menu').forEach(m => m.classList.add('hidden'));
     }
@@ -389,7 +404,7 @@ document.addEventListener('click', (e) => {
     if (!e.target.closest('#emoji-picker') && !e.target.closest('.emoji-picker-btn')) {
         document.getElementById('emoji-picker')?.classList.add('hidden');
     }
-}, true); // capture=true para pegar antes dos stopPropagation internos
+}, false); // bubble phase — os stopPropagation internos funcionam corretamente
 
 // Mostrar tela específica
 function showScreen(screenName) {
@@ -401,18 +416,25 @@ function showScreen(screenName) {
     signupScreen.classList.add('hidden');
     mainScreen.classList.add('hidden');
 
+    // Controlar visibilidade do header (fora do main-screen, fixo no topo)
+    const headerContainer = document.getElementById('header-container');
+
     switch (screenName) {
         case 'landing':
             landingScreen.classList.remove('hidden');
+            if (headerContainer) headerContainer.classList.remove('visible');
             break;
         case 'login':
             loginScreen.classList.remove('hidden');
+            if (headerContainer) headerContainer.classList.remove('visible');
             break;
         case 'signup':
             signupScreen.classList.remove('hidden');
+            if (headerContainer) headerContainer.classList.remove('visible');
             break;
         case 'main':
             mainScreen.classList.remove('hidden');
+            if (headerContainer) headerContainer.classList.add('visible');
             // Não chamar showFeedView aqui - deixar handleHashChange decidir
             break;
     }
@@ -1201,7 +1223,7 @@ function setupEventListeners() {
         'profile-apelido', 'profile-nome', 'profile-username', 'profile-bio',
         'profile-local', 'profile-data-nascimento', 'profile-genero',
         'profile-sexualidade', 'profile-site', 'font-title', 'font-body',
-        'apelido-font-size'
+        'apelido-font-size', 'profile-emoji-label-0', 'profile-emoji-label-1', 'profile-emoji-label-2'
     ];
 
     profileFields.forEach(fieldId => {
@@ -1433,22 +1455,6 @@ function setupEventListeners() {
                 if (username) {
                     e.preventDefault();
                     handleUsernameClick(username);
-                }
-            }
-
-            // Botão de reply
-            const replyBtn = e.target.closest('.btn-reply');
-            if (replyBtn) {
-                const assuntoId = replyBtn.dataset.assuntoId;
-                const statusId = replyBtn.dataset.statusId;
-                const card = replyBtn.closest('.assunto-card');
-
-                if (assuntoId && card) {
-                    e.preventDefault();
-                    toggleRepliesPanel(assuntoId, card, 'assunto');
-                } else if (statusId && card) {
-                    e.preventDefault();
-                    toggleRepliesPanel(statusId, card, 'status');
                 }
             }
         });
@@ -1831,6 +1837,7 @@ function setupEventListeners() {
     const onlineVisitorsList = document.getElementById('online-visitors-list');
     const cantinhoOnlineVisitorsList = document.getElementById('cantinho-online-visitors-list');
     const cantinhoFeedContent = document.getElementById('cantinho-feed-content');
+    const publicProfileFeedContent = document.getElementById('public-profile-feed-content');
     const adminAvisos = document.getElementById('admin-avisos');
     if (feedContent) {
         feedContent.addEventListener('click', handleFeedInteraction);
@@ -1840,6 +1847,11 @@ function setupEventListeners() {
     if (cantinhoFeedContent) {
         cantinhoFeedContent.addEventListener('click', handleFeedInteraction);
         cantinhoFeedContent.addEventListener('submit', handleFeedSubmit);
+    }
+
+    if (publicProfileFeedContent) {
+        publicProfileFeedContent.addEventListener('click', handleFeedInteraction);
+        publicProfileFeedContent.addEventListener('submit', handleFeedSubmit);
     }
 
     if (onlineVisitorsList) {
@@ -1854,18 +1866,9 @@ function setupEventListeners() {
         adminAvisos.addEventListener('click', handleFeedInteraction);
     }
 
-    // Paginação de tags
-    const tagPrevBtn = document.getElementById('tag-prev-btn');
-    const tagNextBtn = document.getElementById('tag-next-btn');
-    if (tagPrevBtn) {
-        tagPrevBtn.addEventListener('click', prevTagPage);
-    }
-    if (tagNextBtn) {
-        tagNextBtn.addEventListener('click', nextTagPage);
-    }
-
     setupMentionCardListeners();
     setupEmojiPicker();
+    setupComposerEmojiPicker();
     setupScrollTopButton();
     setupPhotoModal();
 
@@ -1939,14 +1942,7 @@ function setupEventListeners() {
         });
     }
 
-    // Navegação para Cineminha
-    const navCineminha = document.getElementById('nav-item-cineminha');
-    if (navCineminha) {
-        navCineminha.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.location.hash = '/cineminha';
-        });
-    }
+
 
     // Navegação mobile
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -2797,6 +2793,196 @@ async function handleDarVolta() {
     }
 }
 
+// Lista diversificada de emojis para o picker
+const PROFILE_EMOJIS = [
+    // Pessoas e rostos
+    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
+    '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗',
+    '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝',
+    '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐',
+    '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌',
+    '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢',
+    '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠',
+    '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️',
+    '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨',
+    '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞',
+    '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬',
+    // Mãos e gestos
+    '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤏', '✌️',
+    '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇',
+    '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏',
+    '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾', '🦿',
+    // Animais
+    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼',
+    '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
+    '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺',
+    '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞',
+    '🐜', '🦟', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍',
+    '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀',
+    '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊',
+    '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏',
+    '🐪', '🐫', '🦒', '🦘', '🦬', '🐃', '🐂', '🐄',
+    '🐑', '🐏', '🐐', '🦙', '🐺', '🦩', '🦚', '🦜',
+    // Natureza
+    '🌸', '💮', '🏵️', '🌹', '🥀', '🌺', '🌻', '🌼',
+    '🌷', '🌱', '🪴', '🌲', '🌳', '🌴', '🌵', '🌾',
+    '🌿', '☘️', '🍀', '🍁', '🍂', '🍃', '🍇', '🍈',
+    '🍉', '🍊', '🍋', '🍌', '🍍', '🥭', '🍎', '🍏',
+    '🍐', '🍑', '🍒', '🍓', '🫐', '🥝', '🍅', '🫒',
+    '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑',
+    '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰',
+    '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀',
+    '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭',
+    '🥪', '🌮', '🌯', '🫔', '🥙', '🧆', '🥚', '🍳',
+    '🥘', '🍲', '🫕', '🥣', '🥗', '🍿', '🧈', '🧂',
+    '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝',
+    '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟',
+    '🥠', '🥡', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂',
+    '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯',
+    '🍼', '🥛', '☕', '🫖', '🍵', '🍶', '🍾', '🍷',
+    '🍸', '🍹', '🍺', '🍻', '🥂', '🥃', '🥤', '🧋',
+    '🧃', '🧉', '🧊', '🥢', '🍽️', '🍴', '🥄', '🔪',
+    // Atividades e esportes
+    '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉',
+    '🎱', '🥏', '🏓', '🏸', '🏒', '🥍', '🥊', '🥋',
+    '🥅', '⛳', '⛸️', '🎣', '🤿', '🎽', '🎿', '🛷',
+    '🥌', '🎯', '🪀', '🪁', '🎮', '🕹️', '🎰', '🎲',
+    '🧩', '🧸', '♠️', '♥️', '♦️', '♣️', '♟️', '🃏',
+    '🀄', '🎴', '🎭', '🖼️', '🎨', '🧵', '🧶', '🪡',
+    // Objetos
+    '⌚', '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️',
+    '🕹️', '🗜️', '💽', '💾', '💿', '📀', '📼', '📷',
+    '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟',
+    '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏰',
+    '⏱️', '⏲️', '⌛', '⏳', '📡', '🔋', '🔌', '💡',
+    '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴',
+    '💶', '💷', '💰', '💳', '💎', '⚖️', '🔧', '🔨',
+    '⚒️', '🛠️', '🗡️', '⚔️', '🔫', '🏹', '🛡️', '🔩',
+    '⚙️', '🗝️', '🚪', '🪑', '🛋️', '🛏️', '🛌', '🧸',
+    '🖼️', '🛍️', '🛒', '🎁', '🎈', '🎏', '🎀', '🎊',
+    '🎉', '🎎', '🏮', '🎐', '🧧', '✨', '🎇', '🎆',
+    // Símbolos
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+    '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖',
+    '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️',
+    '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈',
+    '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐',
+    '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️',
+    '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️',
+    '🆚', '🉑', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵',
+    '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘',
+    '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢',
+    '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭',
+    '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆',
+    '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅',
+    '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️',
+    '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🛗', '🈳',
+    // Celestial e clima
+    '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘',
+    '🌙', '🌚', '🌛', '🌜', '🌡️', '☀️', '🌝', '🌞',
+    '🪐', '⭐', '🌟', '🌠', '☁️', '⛅', '⛈️', '🌤️',
+    '🌥️', '🌦️', '🌧️', '🌨️', '🌩️', '🌪️', '🌫️', '🌬️',
+    '🌀', '🌈', '🌂', '☂️', '☔', '⛱️', '⚡', '❄️',
+    '☃️', '⛄', '☄️', '🔥', '💧', '🌊'
+];
+
+let currentEmojiSlot = null;
+
+// Configurar o emoji picker
+function setupEmojiPicker() {
+    const emojiPickerGrid = document.getElementById('emoji-picker-grid');
+    const emojiPickerModal = document.getElementById('emoji-picker-modal');
+    const closeEmojiPickerBtn = document.getElementById('close-emoji-picker');
+
+    if (!emojiPickerGrid) return;
+
+    // Popular o grid com emojis
+    emojiPickerGrid.innerHTML = PROFILE_EMOJIS.map(emoji => `
+        <button type="button" class="emoji-picker-item" data-emoji="${emoji}">${emoji}</button>
+    `).join('');
+
+    // Event listener para selecionar emoji
+    emojiPickerGrid.addEventListener('click', (e) => {
+        const item = e.target.closest('.emoji-picker-item');
+        if (!item || currentEmojiSlot === null) return;
+
+        const emoji = item.dataset.emoji;
+        const emojiInput = document.getElementById(`profile-emoji-${currentEmojiSlot}`);
+        const emojiBtn = document.getElementById(`emoji-slot-${currentEmojiSlot}`);
+
+        if (emojiInput) {
+            emojiInput.value = emoji;
+        }
+
+        if (emojiBtn) {
+            emojiBtn.textContent = emoji;
+            emojiBtn.classList.add('has-emoji');
+        }
+
+        // Fechar o modal
+        if (emojiPickerModal) {
+            emojiPickerModal.classList.add('hidden');
+        }
+
+        currentEmojiSlot = null;
+
+        // Atualizar preview
+        updateSettingsProfilePreview();
+    });
+
+    // Event listener para fechar o modal
+    if (closeEmojiPickerBtn) {
+        closeEmojiPickerBtn.addEventListener('click', () => {
+            if (emojiPickerModal) {
+                emojiPickerModal.classList.add('hidden');
+            }
+            currentEmojiSlot = null;
+        });
+    }
+
+    // Fechar ao clicar fora
+    if (emojiPickerModal) {
+        emojiPickerModal.addEventListener('click', (e) => {
+            if (e.target === emojiPickerModal) {
+                emojiPickerModal.classList.add('hidden');
+                currentEmojiSlot = null;
+            }
+        });
+    }
+
+    // Event listeners para os slots de emoji
+    for (let i = 0; i < 3; i++) {
+        const emojiBtn = document.getElementById(`emoji-slot-${i}`);
+        if (emojiBtn) {
+            emojiBtn.addEventListener('click', () => {
+                currentEmojiSlot = i;
+                if (emojiPickerModal) {
+                    emojiPickerModal.classList.remove('hidden');
+                }
+            });
+        }
+    }
+}
+
+// Atualizar os botões dos slots de emoji
+function updateEmojiSlotButtons() {
+    for (let i = 0; i < 3; i++) {
+        const emojiInput = document.getElementById(`profile-emoji-${i}`);
+        const emojiBtn = document.getElementById(`emoji-slot-${i}`);
+
+        if (emojiInput && emojiBtn) {
+            const emoji = emojiInput.value;
+            if (emoji) {
+                emojiBtn.textContent = emoji;
+                emojiBtn.classList.add('has-emoji');
+            } else {
+                emojiBtn.textContent = '+';
+                emojiBtn.classList.remove('has-emoji');
+            }
+        }
+    }
+}
+
 function updateSelectedTagChoice(tagValue = '') {
     const select = document.getElementById('assunto-tag');
     const switchButton = document.getElementById('tag-switch');
@@ -2827,8 +3013,15 @@ async function handlePostarAssunto() {
     const tag = document.getElementById('assunto-tag').value;
     const avisoAdmin = document.getElementById('assunto-aviso-admin')?.checked || false;
 
-    if (!texto) {
+    // Texto é obrigatório apenas se não houver imagem
+    if (!texto && !selectedAssuntoImageFile) {
         alert(t('error.emptyPost', currentLanguage));
+        return;
+    }
+
+    // Tag é obrigatória
+    if (!tag || tag.trim() === '') {
+        alert('Por favor, escolha uma tag.');
         return;
     }
 
@@ -3925,6 +4118,7 @@ async function loadFeed() {
         renderTrendingTopics(data || [], 'sidebar-tags-container');
 
         await renderMixedFeed(feedItems, feedContent);
+        // Dropdowns are handled by global event listener on document
         feedContent.classList.remove('is-updating');
 
         // Restaurar posição de scroll se possível
@@ -4215,6 +4409,7 @@ async function loadFeedWithPost(postId) {
         const sortedFeedItems = [firstItem, ...restItems];
 
         await renderMixedFeed(sortedFeedItems);
+        // Dropdowns are handled by global event listener on document
 
         // Destacar o status específico
         const specificCard = document.querySelector(`.status-card[data-status-id="${statusId}"]`);
@@ -4300,8 +4495,7 @@ async function loadFeedWithPost(postId) {
     // Se temos tags do banco, usar elas
     if (tagsCache && tagsCache.length > 0) {
         // Popular o select escondido
-        tagSelect.innerHTML = '<option value="">Sem tag</option>' +
-            tagsCache.map(tag =>
+        tagSelect.innerHTML = tagsCache.map(tag =>
                 `<option value="${escapeHtml(tag.slug)}">${escapeHtml(tag.emoji)} ${escapeHtml(tag.nome)}</option>`
             ).join('');
 
@@ -4310,7 +4504,6 @@ async function loadFeedWithPost(postId) {
     } else {
         // Fallback para tags estáticas
         tagSelect.innerHTML = `
-            <option value="">Sem tag</option>
             <option value="música">🎵 Música</option>
             <option value="jogos">🎮 Jogos</option>
             <option value="livros">📚 Livros</option>
@@ -4320,7 +4513,6 @@ async function loadFeedWithPost(postId) {
 
         if (tagOptionsGrid) {
             tagOptionsGrid.innerHTML = `
-    <button type="button" class="tag-option" data-tag="">Sem tag</button>
     <button type="button" class="tag-option" data-tag="música">🎵 Música</button>
     <button type="button" class="tag-option" data-tag="jogos">🎮 Jogos</button>
     <button type="button" class="tag-option" data-tag="livros">📚 Livros</button>
@@ -4367,7 +4559,7 @@ async function loadFeedWithPost(postId) {
     });
             }
 
-            // Renderizar página de tags
+            // Renderizar todas as tags de uma vez (sem paginação)
             function renderTagPage() {
     const tagOptionsGrid = document.getElementById('tag-options-grid');
     const tagPageInfo = document.getElementById('tag-page-info');
@@ -4376,64 +4568,15 @@ async function loadFeedWithPost(postId) {
 
     if (!tagOptionsGrid || !tagsCache) return;
 
-    // Incluir "Sem tag" na contagem
-    const totalItems = tagsCache.length + 1; // +1 para "Sem tag"
-    const totalPages = Math.ceil(totalItems / tagsPerPage);
-    const startIndex = currentTagPage * tagsPerPage;
-    const endIndex = startIndex + tagsPerPage;
+    // Esconder controles de paginação
+    if (tagPageInfo) tagPageInfo.style.display = 'none';
+    if (tagPrevBtn) tagPrevBtn.style.display = 'none';
+    if (tagNextBtn) tagNextBtn.style.display = 'none';
 
-    // Construir array com "Sem tag" + tags da página
-    let pageItems = [];
-
-    // Se a página começa do índice 0, incluir "Sem tag"
-    if (startIndex === 0) {
-        pageItems.push({ slug: '', emoji: '', nome: 'Sem tag', isSpecial: true });
-    }
-
-    // Adicionar tags do banco
-    const tagStartIndex = startIndex === 0 ? 0 : startIndex - 1;
-    const tagEndIndex = startIndex === 0 ? tagsPerPage - 1 : endIndex - 1;
-
-    const pageTags = tagsCache.slice(tagStartIndex, tagEndIndex);
-    pageItems = pageItems.concat(pageTags);
-
-    // Renderizar itens da página atual
-    tagOptionsGrid.innerHTML = pageItems.map(item => {
-        if (item.isSpecial) {
-            return `<button type="button" class="tag-option" data-tag="">Sem tag</button>`;
-        }
+    // Renderizar todas as tags
+    tagOptionsGrid.innerHTML = tagsCache.map(item => {
         return `<button type="button" class="tag-option" data-tag="${escapeHtml(item.slug)}">${escapeHtml(item.emoji)} ${escapeHtml(item.nome)}</button>`;
     }).join('');
-
-    // Atualizar paginação
-    if (tagPageInfo) {
-        tagPageInfo.textContent = `${currentTagPage + 1} / ${totalPages}`;
-    }
-
-    if (tagPrevBtn) {
-        tagPrevBtn.disabled = currentTagPage === 0;
-    }
-
-    if (tagNextBtn) {
-        tagNextBtn.disabled = currentTagPage >= totalPages - 1;
-    }
-            }
-
-            // Navegar para próxima página de tags
-            function nextTagPage() {
-    const totalPages = Math.ceil(tagsCache.length / tagsPerPage);
-    if (currentTagPage < totalPages - 1) {
-        currentTagPage++;
-        renderTagPage();
-    }
-            }
-
-            // Navegar para página anterior de tags
-            function prevTagPage() {
-    if (currentTagPage > 0) {
-        currentTagPage--;
-        renderTagPage();
-    }
             }
 
             function renderTrendingTopics(assuntos, containerId = 'sidebar-tags-container') {
@@ -4630,7 +4773,7 @@ async function loadFeedWithPost(postId) {
     updateScrollTopVisibility();
             }
 
-            function setupEmojiPicker() {
+            function setupComposerEmojiPicker() {
     const picker = document.getElementById('emoji-picker');
     if (!picker) return;
 
@@ -4888,7 +5031,7 @@ async function loadFeedWithPost(postId) {
         if (!success) {
             throw error || new Error('Não foi possível votar.');
         }
-        await loadFeed();
+        await reloadCurrentFeed();
     } catch (err) {
         console.error('Erro ao votar na enquete:', err);
         alert(t('error.votePollRetry', currentLanguage) + (err.message || ''));
@@ -5720,7 +5863,7 @@ async function loadFeedWithPost(postId) {
             if (error) throw error;
         }
 
-        await loadFeed();
+        await reloadCurrentFeed();
     } catch (error) {
         console.error('Erro ao reagir:', error);
         alert('Erro ao reagir: ' + (error.message || 'tente novamente.'));
@@ -5756,6 +5899,36 @@ async function loadFeedWithPost(postId) {
         if (olderReplies) olderReplies.classList.add('hidden');
     }
             }
+
+// Recarrega o feed da view atualmente ativa (feed principal, cantinho ou perfil público)
+async function reloadCurrentFeed() {
+    const feedView = document.getElementById('feed-view');
+    const cantinhoView = document.getElementById('cantinho-view');
+    const publicProfileView = document.getElementById('public-profile-view');
+
+    if (feedView && !feedView.classList.contains('hidden')) {
+        await loadFeed();
+    } else if (cantinhoView && !cantinhoView.classList.contains('hidden')) {
+        const profileToLoad = isViewingOtherUsersCantinho
+            ? await (async () => {
+                const { data } = await supabase.from('profiles').select('*').eq('id', currentCantinhoProfileId).maybeSingle();
+                return data;
+              })()
+            : currentProfile;
+        if (profileToLoad) await loadCantinhoData(profileToLoad);
+    } else if (publicProfileView && !publicProfileView.classList.contains('hidden')) {
+        if (currentPublicProfileId) {
+            const { data: posts } = await supabase
+                .from('assuntos')
+                .select(`*, autor:profiles(id, apelido, nome, fotos, username), respostas(id, texto, criado_em, autor:profiles(id, apelido, nome, fotos, username)), reactions(emoji, autor), poll_votes(visitante, option_index)`)
+                .eq('autor', currentPublicProfileId)
+                .gt('expira_em', new Date().toISOString())
+                .order('criado_em', { ascending: false });
+            await renderFeed(posts || [], 'public-profile-feed-content');
+            // Dropdowns are handled by global event listener on document
+        }
+    }
+}
 
             async function submitReply(itemId, texto, itemType = 'assunto') {
     if (!supabase) {
@@ -5812,7 +5985,7 @@ async function loadFeedWithPost(postId) {
         const skipIds = autorId ? [autorId] : [];
         await notifyMentions(trimmed, itemId, data.id, skipIds, itemType);
 
-        await loadFeed();
+        await reloadCurrentFeed();
     } catch (error) {
         console.error('Erro ao responder:', error);
         alert('Erro ao responder: ' + (error.message || 'tente novamente.'));
@@ -5847,7 +6020,7 @@ async function loadFeedWithPost(postId) {
 
         if (error) throw error;
 
-        await loadFeed();
+        await reloadCurrentFeed();
     } catch (error) {
         console.error('Erro ao excluir assunto:', error);
         alert('Erro ao excluir assunto: ' + (error.message || 'tente novamente.'));
@@ -5867,7 +6040,7 @@ async function loadFeedWithPost(postId) {
 
         if (error) throw error;
 
-        await loadFeed();
+        await reloadCurrentFeed();
     } catch (error) {
         console.error('Erro ao excluir resposta:', error);
         alert('Erro ao excluir resposta: ' + (error.message || 'tente novamente.'));
@@ -5887,7 +6060,7 @@ async function loadFeedWithPost(postId) {
 
         if (error) throw error;
 
-        await loadFeed();
+        await reloadCurrentFeed();
     } catch (error) {
         console.error('Erro ao excluir comentário:', error);
         alert('Erro ao excluir comentário: ' + (error.message || 'tente novamente.'));
@@ -5911,28 +6084,9 @@ async function loadFeedWithPost(postId) {
     }
             }
 
-            function handleFeedInteraction(e) {
-    // Fechar todos os dropdowns ao clicar fora
-    if (!e.target.closest('.options-dropdown-container')) {
-        document.querySelectorAll('.options-dropdown-menu').forEach(menu => {
-            menu.classList.add('hidden');
-        });
-    }
-
-    const dropdownBtn = e.target.closest('.options-dropdown-btn');
-    if (dropdownBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const dropdownId = dropdownBtn.dataset.dropdownId;
-        const dropdownMenu = document.getElementById(dropdownId);
-        if (dropdownMenu) {
-            const willOpen = dropdownMenu.classList.contains('hidden');
-            // Fechar todos os outros primeiro
-            document.querySelectorAll('.options-dropdown-menu').forEach(m => m.classList.add('hidden'));
-            if (willOpen) dropdownMenu.classList.remove('hidden');
-        }
-        return;
-    }
+function handleFeedInteraction(e) {
+    // Dropdown handling is done by global listener
+    // This function now only handles dropdown item actions and other interactions
 
     const dropdownItem = e.target.closest('.dropdown-item');
     if (dropdownItem) {
@@ -6042,7 +6196,7 @@ async function loadFeedWithPost(postId) {
         return;
     }
 
-    const replyToggle = e.target.closest('.reply-toggle-btn');
+    const replyToggle = e.target.closest('.reply-toggle-btn, .btn-reply');
     if (replyToggle) {
         e.preventDefault();
         const itemId = replyToggle.dataset.assuntoId || replyToggle.dataset.statusId;
@@ -6065,9 +6219,9 @@ async function loadFeedWithPost(postId) {
         goToProfile(mention.dataset.username);
         return;
     }
-            }
+}
 
-            async function handlePinAssunto(assuntoId, isPinned) {
+async function handlePinAssunto(assuntoId, isPinned) {
     if (!supabase || !currentUser || !pinAssunto || !unpinAssunto) {
         console.error('Supabase ou funções de pin não disponíveis');
         return;
@@ -6109,7 +6263,7 @@ async function loadFeedWithPost(postId) {
     try {
         const { error } = await supabase.from('user_status').delete().eq('id', statusId).eq('user_id', currentUser.id);
         if (error) throw error;
-        await loadFeed();
+        await reloadCurrentFeed();
         if (currentUser) await loadUserStatuses(currentUser.id);
     } catch (err) {
         console.error('Erro ao deletar status:', err);
@@ -6176,14 +6330,14 @@ async function loadFeedWithPost(postId) {
     try {
         if (addStatusComment) {
             await addStatusComment(statusId, currentUser.id, content);
-            await loadFeed();
+            await reloadCurrentFeed();
         }
     } catch (err) {
         console.error('Erro ao enviar comentário:', err);
     }
             }
 
-            function handleFeedSubmit(e) {
+function handleFeedSubmit(e) {
     const statusForm = e.target.closest('.status-comment-form');
     if (statusForm) {
         e.preventDefault();
@@ -6214,10 +6368,10 @@ async function loadFeedWithPost(postId) {
         // Para assuntos, usar a função de resposta
         submitReply(assuntoId, input?.value || '', 'assunto');
     }
-            }
+}
 
-            // Formatar tempo relativo
-            function timeAgo(dateString) {
+// Formatar tempo relativo
+function timeAgo(dateString) {
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now - date) / 1000);
@@ -6279,6 +6433,28 @@ async function loadFeedWithPost(postId) {
 
     const showSite = document.getElementById('show-site');
     if (showSite) showSite.checked = currentProfile.show_site !== false;
+
+    // Carregar emojis do perfil
+    const profileEmoji0 = document.getElementById('profile-emoji-0');
+    const profileEmoji1 = document.getElementById('profile-emoji-1');
+    const profileEmoji2 = document.getElementById('profile-emoji-2');
+    if (profileEmoji0) profileEmoji0.value = currentProfile.profile_emoji_0 || '';
+    if (profileEmoji1) profileEmoji1.value = currentProfile.profile_emoji_1 || '';
+    if (profileEmoji2) profileEmoji2.value = currentProfile.profile_emoji_2 || '';
+
+    // Carregar legendas dos emojis do perfil
+    const profileEmojiLabel0 = document.getElementById('profile-emoji-label-0');
+    const profileEmojiLabel1 = document.getElementById('profile-emoji-label-1');
+    const profileEmojiLabel2 = document.getElementById('profile-emoji-label-2');
+    if (profileEmojiLabel0) profileEmojiLabel0.value = currentProfile.profile_emoji_label_0 || '';
+    if (profileEmojiLabel1) profileEmojiLabel1.value = currentProfile.profile_emoji_label_1 || '';
+    if (profileEmojiLabel2) profileEmojiLabel2.value = currentProfile.profile_emoji_label_2 || '';
+
+    // Atualizar botões dos slots de emoji
+    updateEmojiSlotButtons();
+
+    // Configurar emoji picker
+    setupEmojiPicker();
 
     // Carregar fontes personalizadas
     const fontTitle = document.getElementById('font-title');
@@ -6362,6 +6538,9 @@ async function loadFeedWithPost(postId) {
             showFeedView();
             return;
         }
+
+        // Guardar ID do usuário público atual para recarregar feed após interações
+        currentPublicProfileId = profile.id;
 
         // Usar o novo componente para atualizar o card de perfil público
         updatePublicProfileCard(profile);
@@ -6822,6 +7001,22 @@ async function handleProfileUpdate(e) {
 
         const showName = document.getElementById('show-name');
         if (showName) profileData.show_name = showName.checked;
+
+        // Adicionar emojis do perfil
+        const profileEmoji0 = document.getElementById('profile-emoji-0');
+        const profileEmoji1 = document.getElementById('profile-emoji-1');
+        const profileEmoji2 = document.getElementById('profile-emoji-2');
+        if (profileEmoji0) profileData.profile_emoji_0 = profileEmoji0.value;
+        if (profileEmoji1) profileData.profile_emoji_1 = profileEmoji1.value;
+        if (profileEmoji2) profileData.profile_emoji_2 = profileEmoji2.value;
+
+        // Adicionar legendas dos emojis do perfil
+        const profileEmojiLabel0 = document.getElementById('profile-emoji-label-0');
+        const profileEmojiLabel1 = document.getElementById('profile-emoji-label-1');
+        const profileEmojiLabel2 = document.getElementById('profile-emoji-label-2');
+        if (profileEmojiLabel0) profileData.profile_emoji_label_0 = profileEmojiLabel0.value;
+        if (profileEmojiLabel1) profileData.profile_emoji_label_1 = profileEmojiLabel1.value;
+        if (profileEmojiLabel2) profileData.profile_emoji_label_2 = profileEmojiLabel2.value;
 
         // Adicionar fontes personalizadas
         const fontTitle = document.getElementById('font-title');
@@ -8593,6 +8788,51 @@ async function goToProfileWithStatus(username, statusId) {
     }
 }
 
+// Função para inicializar dropdowns em um container
+function initializeDropdowns(container) {
+    console.log('initializeDropdowns called for container:', container);
+    if (!container) return;
+    
+    const dropdownBtns = container.querySelectorAll('.options-dropdown-btn');
+    console.log('Found dropdown buttons:', dropdownBtns.length);
+    dropdownBtns.forEach(btn => {
+        console.log('Initializing dropdown button:', btn);
+        // Remove existing listener to avoid duplicates
+        btn.removeEventListener('click', handleDropdownClick);
+        // Add new listener
+        btn.addEventListener('click', handleDropdownClick);
+        console.log('Listener added to button');
+    });
+}
+
+function handleDropdownClick(e) {
+    console.log('handleDropdownClick called');
+    e.preventDefault();
+    e.stopPropagation();
+    const dropdownBtn = e.target.closest('.options-dropdown-btn');
+    console.log('Dropdown button found:', dropdownBtn);
+    if (!dropdownBtn) return;
+    
+    const dropdownId = dropdownBtn.dataset.dropdownId;
+    console.log('Dropdown ID:', dropdownId);
+    const dropdownMenu = document.getElementById(dropdownId);
+    console.log('Dropdown menu element:', dropdownMenu);
+    if (dropdownMenu) {
+        const willOpen = dropdownMenu.classList.contains('hidden');
+        console.log('Will open:', willOpen);
+        // Fechar todos os outros primeiro
+        document.querySelectorAll('.options-dropdown-menu').forEach(m => m.classList.add('hidden'));
+        if (willOpen) dropdownMenu.classList.remove('hidden');
+        console.log('Dropdown toggled');
+    }
+}
+
+// Função para reatachar event listeners após renderização dinâmica
+function reattachFeedEventListeners(container) {
+    // Os event listeners já são globais via document, então não precisamos reatachar
+    // Esta função é apenas um placeholder para compatibilidade
+}
+
 async function loadCantinhoData(profile) {
     if (!profile) {
         console.error('loadCantichoData: profile is null');
@@ -8716,7 +8956,6 @@ async function loadCantinhoData(profile) {
 
     currentCantinhoProfileId = profile.id;
     bindCantinhoWidgetEditHandlers(profile.id);
-    bindBetaInvitePanel(profile.id);
 
     // Carregar assuntos do usuário
     if (cantinhoFeedContent && profile.id) {
@@ -8753,6 +8992,8 @@ async function loadCantinhoData(profile) {
                 cantinhoFeedContent.innerHTML = '<p class="feed-loading">' + t('feed.noPostsYet', currentLanguage) + '</p>';
             } else {
                 await renderMixedFeed(feedItems, cantinhoFeedContent);
+                // Dropdowns are handled by global event listener on document
+                // No need to call initializeDropdowns as it conflicts with global listener
             }
         } catch (error) {
             console.error('Erro ao carregar assuntos do usuário:', error);
@@ -9189,89 +9430,6 @@ async function loadPinnedAssuntoToFeed(assuntoId) {
     }
 }
 
-async function bindBetaInvitePanel(profileId) {
-    const card = document.getElementById('beta-invites-card');
-    const countLabel = document.getElementById('beta-invites-count');
-    const createButton = document.getElementById('btn-create-beta-invite');
-    const list = document.getElementById('beta-invites-list');
-    const isOwner = Boolean(currentUser && currentUser.id === profileId);
-
-    if (!card || !countLabel || !createButton || !list) return;
-
-    card.classList.toggle('hidden', !isOwner);
-    if (!isOwner || !getMyBetaInviteCount || !createBetaInvite) return;
-
-    const renderStoredLinks = () => {
-        let storedLinks = [];
-        try {
-            storedLinks = JSON.parse(sessionStorage.getItem('pracinha-beta-invite-links') || '[]');
-        } catch (error) {
-            storedLinks = [];
-        }
-
-        list.innerHTML = '';
-        storedLinks.forEach(link => {
-            const row = document.createElement('div');
-            row.className = 'beta-invite-row';
-            row.textContent = link;
-            row.title = 'Clique para copiar';
-            row.addEventListener('click', async () => {
-                try {
-                    await navigator.clipboard.writeText(link);
-                    row.textContent = t('btn.linkCopied', currentLanguage);
-                    setTimeout(() => { row.textContent = link; }, 1500);
-                } catch (error) {
-                    window.prompt('Copie o convite:', link);
-                }
-            });
-            list.appendChild(row);
-        });
-    };
-
-    const refreshCount = async () => {
-        try {
-            const count = await getMyBetaInviteCount(profileId);
-            countLabel.textContent = `${count}/3`;
-            createButton.disabled = count >= 3;
-            createButton.textContent = count >= 3 ? t('admin.limitReached', currentLanguage) : t('admin.generateInvite', currentLanguage);
-        } catch (error) {
-            console.error('Erro ao carregar limite de convites:', error);
-            countLabel.textContent = '--/3';
-        }
-    };
-
-    createButton.onclick = async () => {
-        createButton.disabled = true;
-        createButton.textContent = t('btn.generating', currentLanguage);
-
-        try {
-            const invite = await createBetaInvite();
-            if (!invite?.token) throw new Error(t('error.inviteNotReturned', currentLanguage));
-
-            const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${encodeURIComponent(invite.token)}`;
-            let storedLinks = [];
-            try {
-                storedLinks = JSON.parse(sessionStorage.getItem('pracinha-beta-invite-links') || '[]');
-            } catch (error) {
-                storedLinks = [];
-            }
-            storedLinks.push(inviteUrl);
-            sessionStorage.setItem('pracinha-beta-invite-links', JSON.stringify(storedLinks.slice(-3)));
-            renderStoredLinks();
-            await navigator.clipboard?.writeText(inviteUrl);
-            alert('Convite gerado e copiado. Ele expira em 3 dias e só pode ser usado uma vez.');
-        } catch (error) {
-            console.error('Erro ao gerar convite:', error);
-            alert(error.message || 'Não foi possível gerar o convite.');
-        } finally {
-            await refreshCount();
-        }
-    };
-
-    renderStoredLinks();
-    await refreshCount();
-}
-
 // Navegação mobile
 function handleNavigation(page) {
     if (page === 'pracinha') {
@@ -9632,31 +9790,24 @@ function showAdminView() {
     document.getElementById('public-profile-view').classList.add('hidden');
     document.getElementById('page-view').classList.add('hidden');
 
-    // Mostrar admin view
+    // Garantir que o admin view fique abaixo do header fixo (igual ao restante do site)
     const adminView = document.getElementById('admin-view');
     adminView.classList.remove('hidden');
 
     // Atualizar navegação do header
     updateHeaderNavigation();
 
-    // Garantir que o admin view esteja no topo
-    adminView.style.marginTop = '0';
-    adminView.style.paddingTop = '0';
-    adminView.style.position = 'relative';
-    adminView.style.top = '0';
+    // Restaurar espaçamento do topo (header fixo ocupa ~52px)
+    adminView.style.marginTop = '';
+    adminView.style.paddingTop = '';
+    adminView.style.position = '';
+    adminView.style.top = '';
 
-    // Remover padding do main-content
+    // Restaurar padding do main-content (CSS já define 16px quando admin-view está ativo)
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
-        mainContent.style.padding = '0';
-        mainContent.style.marginTop = '0';
-    }
-
-    // Remover padding/margin do main-screen
-    const mainScreen = document.getElementById('main-screen');
-    if (mainScreen) {
-        mainScreen.style.paddingTop = '0';
-        mainScreen.style.marginTop = '0';
+        mainContent.style.padding = '';
+        mainContent.style.marginTop = '';
     }
 
     // Ir para o topo da página imediatamente
@@ -10827,7 +10978,7 @@ function updateSettingsProfilePreview() {
         bio: document.getElementById('profile-bio')?.value || currentProfile.bio,
         local: document.getElementById('profile-local')?.value || currentProfile.local,
         data_nascimento: document.getElementById('profile-data-nascimento')?.value || currentProfile.data_nascimento || null,
-        genero: document.getElementById('profile-genero')?.value || currentProfile.pronomes,
+        pronomes: document.getElementById('profile-genero')?.value || currentProfile.pronomes,
         sexualidade: document.getElementById('profile-sexualidade')?.value || currentProfile.sexualidade,
         site_url: document.getElementById('profile-site')?.value || currentProfile.site_url,
         fotos: currentProfile.fotos,
@@ -10838,6 +10989,12 @@ function updateSettingsProfilePreview() {
         show_pronomes: document.getElementById('show-pronomes')?.checked,
         show_sexualidade: document.getElementById('show-sexualidade')?.checked,
         show_site: document.getElementById('show-site')?.checked,
+        profile_emoji_0: document.getElementById('profile-emoji-0')?.value || currentProfile.profile_emoji_0,
+        profile_emoji_1: document.getElementById('profile-emoji-1')?.value || currentProfile.profile_emoji_1,
+        profile_emoji_2: document.getElementById('profile-emoji-2')?.value || currentProfile.profile_emoji_2,
+        profile_emoji_label_0: document.getElementById('profile-emoji-label-0')?.value || currentProfile.profile_emoji_label_0,
+        profile_emoji_label_1: document.getElementById('profile-emoji-label-1')?.value || currentProfile.profile_emoji_label_1,
+        profile_emoji_label_2: document.getElementById('profile-emoji-label-2')?.value || currentProfile.profile_emoji_label_2,
         font_title: document.getElementById('font-title')?.value || currentProfile.font_title,
         font_body: document.getElementById('font-body')?.value || currentProfile.font_body,
         apelido_font_size: parseInt(document.getElementById('apelido-font-size')?.value) || currentProfile.apelido_font_size || 48,
@@ -10876,8 +11033,6 @@ window.saveUserRole = saveUserRole;
 window.currentProfile = currentProfile;
 window.currentUser = currentUser;
 window.getUserProfile = getUserProfile;
-window.nextTagPage = nextTagPage;
-window.prevTagPage = prevTagPage;
 window.openUsersModal = openUsersModal;
 window.closeUsersModal = closeUsersModal;
 window.openTagsModal = openTagsModal;
@@ -11577,8 +11732,29 @@ function handleSwipe(view, navRight, navLeft, startX, endX) {
 }
 
 // Função para inicializar instalação PWA
+let pwaDeferredPrompt = null;
+
+// Tenta instalar o PWA a qualquer momento (ex: botão fixo nas configurações).
+// Retorna true se o prompt nativo foi disparado, false se não houver prompt disponível.
+window.installPWA = async function() {
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        return false;
+    }
+    if (pwaDeferredPrompt) {
+        pwaDeferredPrompt.prompt();
+        const { outcome } = await pwaDeferredPrompt.userChoice;
+        pwaDeferredPrompt = null;
+        console.log('Resultado da instalação:', outcome);
+        const installBar = document.getElementById('pwa-install-bar');
+        if (installBar && outcome === 'accepted') {
+            installBar.classList.add('hidden');
+        }
+        return outcome === 'accepted';
+    }
+    return false;
+};
+
 function initPWAInstall() {
-    let deferredPrompt;
     const installBar = document.getElementById('pwa-install-bar');
     const installBtn = document.getElementById('pwa-install-btn');
     const closeBtn = document.getElementById('pwa-install-close');
@@ -11597,7 +11773,7 @@ function initPWAInstall() {
     window.addEventListener('beforeinstallprompt', (e) => {
         console.log('Evento beforeinstallprompt disparado');
         e.preventDefault();
-        deferredPrompt = e;
+        pwaDeferredPrompt = e;
 
         // Mostrar barra de instalação
         if (installBar) {
@@ -11615,28 +11791,29 @@ function initPWAInstall() {
         }
     });
 
-    // Botão de instalação
+    // Botão de instalação (barra superior)
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
             console.log('Botão de instalação clicado');
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                console.log('Resultado da instalação:', outcome);
+            await window.installPWA();
+        });
+    }
 
-                if (outcome === 'accepted') {
-                    if (installBar) {
-                        installBar.classList.add('hidden');
-                    }
-                }
-            } else {
-                console.log('Nenhum prompt de instalação disponível (normal em localhost)');
+    // Botão de instalação fixo na página de configurações
+    const btnInstallPwaSettings = document.getElementById('btn-install-pwa-settings');
+    const pwaInstallManual = document.getElementById('pwa-install-manual');
+    if (btnInstallPwaSettings) {
+        btnInstallPwaSettings.addEventListener('click', async () => {
+            const installed = await window.installPWA();
+            if (!installed && pwaInstallManual) {
+                // Sem prompt nativo disponível (ex: iOS) - mostrar instruções manuais
+                btnInstallPwaSettings.classList.add('hidden');
+                pwaInstallManual.classList.remove('hidden');
             }
         });
     }
 
-    // Botão de fechar
+    // Botão de fechar barra
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
             if (installBar) {
@@ -11647,11 +11824,15 @@ function initPWAInstall() {
         });
     }
 
-    // Esconder barra se já estiver instalado
+    // Esconder barra e instruções manuais se já estiver instalado
     window.addEventListener('appinstalled', () => {
         if (installBar) {
             installBar.classList.add('hidden');
         }
+        const btn = document.getElementById('btn-install-pwa-settings');
+        const manual = document.getElementById('pwa-install-manual');
+        if (btn) btn.classList.add('hidden');
+        if (manual) manual.classList.add('hidden');
     });
 }
 

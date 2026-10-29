@@ -73,6 +73,56 @@ body {
     opacity: 1;
 }
 
+/* Botão fixo de instalação PWA na página de configurações */
+.pwa-install-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+    color: var(--text-primary);
+}
+
+.pwa-install-card .settings-section-title {
+    font-size: 16px;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.pwa-install-card .form-hint {
+    font-size: 13px;
+    margin: 0 0 12px;
+    color: var(--text-secondary);
+}
+
+.pwa-install-manual {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.pwa-install-manual .pwa-manual-title {
+    font-weight: 600;
+    margin: 0 0 6px;
+    color: var(--text-primary);
+}
+
+.pwa-install-manual .pwa-manual-text {
+    margin: 0 0 8px;
+}
+
+.pwa-install-manual .pwa-manual-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.pwa-install-manual .pwa-manual-list li {
+    margin: 4px 0;
+}
+
 /* Anúncio Completo (card expandido) */
 .admin-anuncio-completo {
     background: var(--bg-secondary);
@@ -176,27 +226,15 @@ body {
 
 /* Anúncios Fixados do Admin */
 .admin-anuncios-fixados {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 16px;
-    overflow: hidden;
+    overflow: visible;
 }
 
-.admin-anuncios-fixados.cards-1 {
-    grid-template-columns: 1fr;
-}
-
-.admin-anuncios-fixados.cards-2 {
-    grid-template-columns: repeat(2, 1fr);
-}
-
-.admin-anuncios-fixados.cards-3 {
-    grid-template-columns: repeat(3, 1fr);
-}
-
-.admin-anuncios-fixados.cards-4 {
-    grid-template-columns: repeat(3, 1fr);
+.admin-anuncios-fixados.hidden {
+    display: none;
 }
 
 .admin-anuncio-card {
@@ -204,19 +242,24 @@ body {
     border-radius: 12px;
     padding: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: row;
     gap: 10px;
-    aspect-ratio: 1.5 / 1;
-    overflow: hidden;
+    overflow: visible;
     border: 1px solid var(--border-color);
     max-height: 120px;
+    min-width: 0;
+    flex: 0 0 auto;
+    width: calc(33.333% - 5px);
 }
 
 .admin-anuncio-card:hover {
+    position: relative;
+    z-index: 100;
     transform: translateY(-4px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow: visible;
 }
 
 .admin-anuncio-emoji {
@@ -673,6 +716,8 @@ textarea {
 .screen {
     min-height: 100vh;
     width: 100%;
+    box-sizing: border-box;
+    padding-top: 70px;
 }
 
 /* Landing Page */
@@ -960,11 +1005,28 @@ textarea {
     justify-content: flex-start;
     padding: 3px 7px;
     background-color: var(--bg-secondary);
-    position: sticky;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 100;
     overflow: visible;
     /* Fonte fixa: não herda a fonte geral escolhida pelo usuário */
     font-family: 'Google Sans', system-ui, -apple-system, sans-serif !important;
+}
+
+/* header-container fora do main-screen — oculto por padrão, JS controla */
+#header-container {
+    display: none;
+}
+
+#header-container.visible {
+    display: block;
+}
+
+/* Compensar o header fixo: o main-screen começa abaixo dele */
+#main-screen {
+    padding-top: 70px;
 }
 
 .header * {
@@ -1271,7 +1333,7 @@ textarea {
 
     /* Adicionar padding ao main content para compensar header e bottom nav */
     #main-screen {
-        padding-top: 60px !important;
+        padding-top: 70px !important;
         padding-bottom: 60px !important;
     }
 
@@ -1282,7 +1344,7 @@ textarea {
         grid-template-columns: none !important;
         gap: 0 !important;
         position: relative;
-        overflow: hidden;
+        /* overflow: hidden removed to allow dropdown menus to escape */
     }
 
     /* Cantinho view - mostrar apenas sidebar-right por padrão */
@@ -1322,7 +1384,7 @@ textarea {
         margin: 0 !important;
         padding: 16px !important;
         box-sizing: border-box !important;
-        overflow-x: hidden !important;
+        /* overflow-x: hidden removed to allow dropdown menus to escape */
         opacity: 1;
         transform: translateX(0);
         transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
@@ -1365,7 +1427,7 @@ textarea {
         margin: 0 !important;
         padding: 16px !important;
         box-sizing: border-box !important;
-        overflow-x: hidden !important;
+        /* overflow-x: hidden removed to allow dropdown menus to escape */
         opacity: 1;
         transform: translateX(0);
         transition: opacity 300ms ease-in-out, transform 300ms ease-in-out;
@@ -1684,6 +1746,7 @@ textarea {
 .feed {
     max-width: 800px;
     margin: 0 auto;
+    overflow: visible;
 }
 
 @media (max-width: 768px) {
@@ -2311,6 +2374,7 @@ textarea {
     gap: 16px;
     transition: opacity 150ms ease-in-out;
     width: 100%;
+    overflow: visible;
 }
 
 .feed-content.is-updating {
@@ -2342,6 +2406,7 @@ textarea {
     background-color: var(--bg-secondary);
     border-radius: 12px;
     padding: 16px;
+    position: relative;
 }
 
 @media (max-width: 1023px) {
@@ -2499,6 +2564,7 @@ textarea {
     display: flex;
     gap: 12px;
     margin-bottom: 8px;
+    overflow: visible;
 }
 
 .assunto-author {
@@ -2518,6 +2584,7 @@ textarea {
 .assunto-content {
     flex: 1;
     min-width: 0;
+    overflow: visible;
 }
 
 .assunto-top {
@@ -2526,6 +2593,7 @@ textarea {
     align-items: baseline;
     gap: 12px;
     margin-bottom: 6px;
+    overflow: visible;
 }
 
 .author-name {
@@ -2831,6 +2899,7 @@ textarea {
 
 .options-dropdown-container {
     position: relative;
+    z-index: 20;
 }
 
 .options-dropdown-btn {
@@ -2860,7 +2929,7 @@ textarea {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
+    z-index: 10000;
     min-width: 150px;
     padding: 4px 0;
 }
@@ -4595,23 +4664,142 @@ textarea {
 .profile-badges-row {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
 .profile-badge {
     display: inline-flex;
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 20px;
     cursor: default;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+.profile-badge-emoji {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.profile-badge-label {
+    display: none;
 }
 
 .profile-badge:hover {
+    background: none;
+    color: inherit;
+    border-color: inherit;
+}
+
+.profile-emojis-selector {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.emoji-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.emoji-slot-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    border: 2px dashed var(--border-color);
+    background: var(--bg-primary);
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.emoji-slot-btn:hover {
+    border-color: var(--accent-primary);
     background: var(--accent-subtle);
+}
+
+.emoji-slot-btn.has-emoji {
+    border-style: solid;
+    border-color: var(--accent-primary);
+}
+
+.emoji-label-input {
+    width: 48px;
+    margin-top: 6px;
+    padding: 4px 6px;
+    font-size: 11px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.emoji-label-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.emoji-label-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.emoji-picker-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.emoji-picker-content {
+    background: var(--bg-primary);
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.emoji-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.emoji-picker-item {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.emoji-picker-item:hover {
+    background: var(--accent-subtle);
+    transform: scale(1.1);
 }
 
 .profile-status-items {
@@ -5668,6 +5856,7 @@ textarea {
     gap: 16px;
     padding: 16px;
     align-items: start;
+    overflow: visible;
 }
 
 @media (max-width: 1023px) {
@@ -5677,7 +5866,7 @@ textarea {
         gap: 0;
         padding: 0;
         width: 100%;
-        overflow-x: hidden;
+        /* overflow-x: hidden removed to allow dropdown menus to escape */
     }
 
     .cantinho-view .sidebar-right {
@@ -5723,6 +5912,7 @@ textarea {
     width: 100%;
     background: var(--card-bg);
     border-radius: 12px;
+    overflow: visible;
 }
 
 @media (max-width: 1023px) {
@@ -6714,6 +6904,7 @@ textarea {
     gap: 13px;
     padding-top: 6px;
     margin-top: 8px;
+    overflow: visible;
 }
 
 .status-react-btn,

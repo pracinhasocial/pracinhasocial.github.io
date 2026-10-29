@@ -128,8 +128,107 @@ const settingsView = document.getElementById('settings-view');
 const cantinhoView = document.getElementById('cantinho-view');
 const mainContent = document.getElementById('main-content');
 
+// Função debounce para busca
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Função para configurar a seção de MBTI
+function setupMBTISection() {
+    const discoverySection = document.getElementById('mbti-discovery-section');
+    const resultDisplay = document.getElementById('mbti-result-display');
+    const manualInput = document.getElementById('mbti-manual-input');
+    const mbtiDisplayType = document.getElementById('mbti-display-type');
+    const visibilitySection = document.getElementById('mbti-visibility-section');
+    const showMbtiCheckbox = document.getElementById('show-mbti');
+    
+    if (!discoverySection || !resultDisplay || !manualInput) return;
+    
+    // Verificar se o usuário já tem MBTI salvo
+    if (currentProfile && currentProfile.mbti) {
+        // Mostrar resultado salvo
+        discoverySection.classList.add('hidden');
+        resultDisplay.classList.remove('hidden');
+        manualInput.classList.add('hidden');
+
+        // Mostrar checkbox de visibilidade
+        if (visibilitySection) {
+            visibilitySection.classList.remove('hidden');
+        }
+        
+        // Configurar checkbox de visibilidade
+        if (showMbtiCheckbox) {
+            showMbtiCheckbox.checked = currentProfile.show_mbti !== false;
+        }
+        
+        if (mbtiDisplayType) {
+            mbtiDisplayType.textContent = currentProfile.mbti;
+        }
+        
+        // Adicionar evento de clique para mostrar detalhes
+        resultDisplay.onclick = () => {
+            // Usar window para acessar a função do mbti-test.js
+            if (window.showMBTIResultDetail && typeof window.showMBTIResultDetail === 'function') {
+                window.showMBTIResultDetail();
+            }
+        };
+    } else {
+        // Mostrar seção de descoberta
+        discoverySection.classList.remove('hidden');
+        resultDisplay.classList.add('hidden');
+        manualInput.classList.add('hidden');
+
+        // Esconder checkbox de visibilidade
+        if (visibilitySection) {
+            visibilitySection.classList.add('hidden');
+        }
+    }
+    
+    // Configurar botão de descobrir MBTI
+    const discoverBtn = document.getElementById('btn-discover-mbti');
+    if (discoverBtn) {
+        discoverBtn.onclick = () => {
+            if (window.openMBTITest && typeof window.openMBTITest === 'function') {
+                window.openMBTITest();
+            }
+        };
+    }
+    
+    // Configurar botão de adicionar manualmente
+    const manualBtn = document.getElementById('btn-add-mbti-manual');
+    if (manualBtn) {
+        manualBtn.onclick = () => {
+            discoverySection.classList.add('hidden');
+            manualInput.classList.remove('hidden');
+            
+            // Mostrar checkbox de visibilidade também ao adicionar manualmente
+            if (visibilitySection) {
+                visibilitySection.classList.remove('hidden');
+            }
+        };
+    }
+    
+    // Configurar botão de fechar do modal de teste
+    const closeTestBtn = document.getElementById('mbti-test-close');
+    if (closeTestBtn) {
+        closeTestBtn.onclick = () => {
+            if (window.closeMBTITest && typeof window.closeMBTITest === 'function') {
+                window.closeMBTITest();
+            }
+        };
+    }
+}
+
 // Inicialização
-document.addEventListener('DOMContentLoaded', async () => {
+async function init() {
     // Aplicar tema salvo
     applyTheme(currentTheme);
 
@@ -258,7 +357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (pendingInviteToken) {
         showScreen('signup');
     }
-});
+}
 
 // Mostrar tela específica
 function showScreen(screenName) {
@@ -1170,6 +1269,7 @@ function setupEventListeners() {
 
     setupMentionCardListeners();
     setupEmojiPicker();
+    setupComposerEmojiPicker();
     setupScrollTopButton();
     setupPhotoModal();
 
@@ -1243,14 +1343,7 @@ function setupEventListeners() {
         });
     }
 
-    // Navegação para Cineminha
-    const navCineminha = document.getElementById('nav-item-cineminha');
-    if (navCineminha) {
-        navCineminha.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.location.hash = '/cineminha';
-        });
-    }
+
 
     // Navegação mobile
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -2012,6 +2105,193 @@ function renderAdminAvisos(avisos) {
         }
         return (div.textContent || div.innerText || '').trim() || 'Sem título';
     };
+
+// Lista diversificada de emojis para o picker
+const PROFILE_EMOJIS = [
+    // Pessoas e rostos
+    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂',
+    '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗',
+    '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝',
+    '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐',
+    '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌',
+    '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢',
+    '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠',
+    '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️',
+    '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨',
+    '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞',
+    '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬',
+    // Mãos e gestos
+    '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤏', '✌️',
+    '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇',
+    '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏',
+    '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾', '🦿',
+    // Animais
+    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼',
+    '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔',
+    '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺',
+    '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞',
+    '🐜', '🦟', '🦗', '🕷️', '🕸️', '🦂', '🐢', '🐍',
+    '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀',
+    '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊',
+    '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏',
+    '🐪', '🐫', '🦒', '🦘', '🦬', '🐃', '🐂', '🐄',
+    '🐑', '🐏', '🐐', '🦙', '🐺', '🦩', '🦚', '🦜',
+    // Natureza
+    '🌸', '💮', '🏵️', '🌹', '🥀', '🌺', '🌻', '🌼',
+    '🌷', '🌱', '🪴', '🌲', '🌳', '🌴', '🌵', '🌾',
+    '🌿', '☘️', '🍀', '🍁', '🍂', '🍃', '🍇', '🍈',
+    '🍉', '🍊', '🍋', '🍌', '🍍', '🥭', '🍎', '🍏',
+    '🍐', '🍑', '🍒', '🍓', '🫐', '🥝', '🍅', '🫒',
+    '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🫑',
+    '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰',
+    '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀',
+    '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭',
+    '🥪', '🌮', '🌯', '🫔', '🥙', '🧆', '🥚', '🍳',
+    '🥘', '🍲', '🫕', '🥣', '🥗', '🍿', '🧈', '🧂',
+    '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝',
+    '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟',
+    '🥠', '🥡', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂',
+    '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯',
+    '🍼', '🥛', '☕', '🫖', '🍵', '🍶', '🍾', '🍷',
+    '🍸', '🍹', '🍺', '🍻', '🥂', '🥃', '🥤', '🧋',
+    '🧃', '🧉', '🧊', '🥢', '🍽️', '🍴', '🥄', '🔪',
+    // Atividades e esportes
+    '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉',
+    '🎱', '🥏', '🏓', '🏸', '🏒', '🥍', '🥊', '🥋',
+    '🥅', '⛳', '⛸️', '🎣', '🤿', '🎽', '🎿', '🛷',
+    '🥌', '🎯', '🪀', '🪁', '🎮', '🕹️', '🎰', '🎲',
+    '🧩', '🧸', '♠️', '♥️', '♦️', '♣️', '♟️', '🃏',
+    '🀄', '🎴', '🎭', '🖼️', '🎨', '🧵', '🧶', '🪡',
+    // Objetos
+    '⌚', '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️',
+    '🕹️', '🗜️', '💽', '💾', '💿', '📀', '📼', '📷',
+    '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟',
+    '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏰',
+    '⏱️', '⏲️', '⌛', '⏳', '📡', '🔋', '🔌', '💡',
+    '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴',
+    '💶', '💷', '💰', '💳', '💎', '⚖️', '🔧', '🔨',
+    '⚒️', '🛠️', '🗡️', '⚔️', '🔫', '🏹', '🛡️', '🔩',
+    '⚙️', '🗝️', '🚪', '🪑', '🛋️', '🛏️', '🛌', '🧸',
+    '🖼️', '🛍️', '🛒', '🎁', '🎈', '🎏', '🎀', '🎊',
+    '🎉', '🎎', '🏮', '🎐', '🧧', '✨', '🎇', '🎆',
+    // Símbolos
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍',
+    '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖',
+    '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️',
+    '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈',
+    '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐',
+    '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️',
+    '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️',
+    '🆚', '🉑', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵',
+    '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘',
+    '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢',
+    '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭',
+    '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆',
+    '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅',
+    '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️',
+    '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🛗', '🈳',
+    // Celestial e clima
+    '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘',
+    '🌙', '🌚', '🌛', '🌜', '🌡️', '☀️', '🌝', '🌞',
+    '🪐', '⭐', '🌟', '🌠', '☁️', '⛅', '⛈️', '🌤️',
+    '🌥️', '🌦️', '🌧️', '🌨️', '🌩️', '🌪️', '🌫️', '🌬️',
+    '🌀', '🌈', '🌂', '☂️', '☔', '⛱️', '⚡', '❄️',
+    '☃️', '⛄', '☄️', '🔥', '💧', '🌊'
+];
+
+let currentEmojiSlot = null;
+
+// Configurar o emoji picker
+function setupEmojiPicker() {
+    const emojiPickerGrid = document.getElementById('emoji-picker-grid');
+    const emojiPickerModal = document.getElementById('emoji-picker-modal');
+    const closeEmojiPickerBtn = document.getElementById('close-emoji-picker');
+
+    if (!emojiPickerGrid) return;
+
+    // Popular o grid com emojis
+    emojiPickerGrid.innerHTML = PROFILE_EMOJIS.map(emoji => `
+        <button type="button" class="emoji-picker-item" data-emoji="${emoji}">${emoji}</button>
+    `).join('');
+
+    // Event listener para selecionar emoji
+    emojiPickerGrid.addEventListener('click', (e) => {
+        const item = e.target.closest('.emoji-picker-item');
+        if (!item || currentEmojiSlot === null) return;
+
+        const emoji = item.dataset.emoji;
+        const emojiInput = document.getElementById(`profile-emoji-${currentEmojiSlot}`);
+        const emojiBtn = document.getElementById(`emoji-slot-${currentEmojiSlot}`);
+
+        if (emojiInput) {
+            emojiInput.value = emoji;
+        }
+
+        if (emojiBtn) {
+            emojiBtn.textContent = emoji;
+            emojiBtn.classList.add('has-emoji');
+        }
+
+        // Fechar o modal
+        if (emojiPickerModal) {
+            emojiPickerModal.classList.add('hidden');
+        }
+
+        currentEmojiSlot = null;
+    });
+
+    // Event listener para fechar o modal
+    if (closeEmojiPickerBtn) {
+        closeEmojiPickerBtn.addEventListener('click', () => {
+            if (emojiPickerModal) {
+                emojiPickerModal.classList.add('hidden');
+            }
+            currentEmojiSlot = null;
+        });
+    }
+
+    // Fechar ao clicar fora
+    if (emojiPickerModal) {
+        emojiPickerModal.addEventListener('click', (e) => {
+            if (e.target === emojiPickerModal) {
+                emojiPickerModal.classList.add('hidden');
+                currentEmojiSlot = null;
+            }
+        });
+    }
+
+    // Event listeners para os slots de emoji
+    for (let i = 0; i < 3; i++) {
+        const emojiBtn = document.getElementById(`emoji-slot-${i}`);
+        if (emojiBtn) {
+            emojiBtn.addEventListener('click', () => {
+                currentEmojiSlot = i;
+                if (emojiPickerModal) {
+                    emojiPickerModal.classList.remove('hidden');
+                }
+            });
+        }
+    }
+}
+
+// Atualizar os botões dos slots de emoji
+function updateEmojiSlotButtons() {
+    for (let i = 0; i < 3; i++) {
+        const emojiInput = document.getElementById(`profile-emoji-${i}`);
+        const emojiBtn = document.getElementById(`emoji-slot-${i}`);
+
+        if (emojiInput && emojiBtn) {
+            const emoji = emojiInput.value;
+            if (emoji) {
+                emojiBtn.textContent = emoji;
+                emojiBtn.classList.add('has-emoji');
+            } else {
+                emojiBtn.textContent = '+';
+                emojiBtn.classList.remove('has-emoji');
+            }
+        }
+    }
+}
 
     adminAvisos.innerHTML = avisos.map(aviso => `
         <div class="admin-aviso-card" data-aviso-id="${aviso.id}">
@@ -2802,7 +3082,7 @@ async function loadFeedWithPost(postId) {
     updateScrollTopVisibility();
             }
 
-            function setupEmojiPicker() {
+            function setupComposerEmojiPicker() {
     const picker = document.getElementById('emoji-picker');
     if (!picker) return;
 
@@ -4443,6 +4723,20 @@ async function loadFeedWithPost(postId) {
     const showSite = document.getElementById('show-site');
     if (showSite) showSite.checked = currentProfile.show_site !== false;
 
+    // Carregar emojis do perfil
+    const profileEmoji0 = document.getElementById('profile-emoji-0');
+    const profileEmoji1 = document.getElementById('profile-emoji-1');
+    const profileEmoji2 = document.getElementById('profile-emoji-2');
+    if (profileEmoji0) profileEmoji0.value = currentProfile.profile_emoji_0 || '';
+    if (profileEmoji1) profileEmoji1.value = currentProfile.profile_emoji_1 || '';
+    if (profileEmoji2) profileEmoji2.value = currentProfile.profile_emoji_2 || '';
+
+    // Atualizar botões dos slots de emoji
+    updateEmojiSlotButtons();
+
+    // Configurar emoji picker
+    setupEmojiPicker();
+
     // Carregar configurações de plano de fundo
     if (currentProfile.bg_type) {
         const bgTypeRadio = document.querySelector(`input[name="bg-type"][value="${currentProfile.bg_type}"]`);
@@ -4995,6 +5289,14 @@ async function loadFeedWithPost(postId) {
 
         const showName = document.getElementById('show-name');
         if (showName) profileData.show_name = showName.checked;
+
+        // Adicionar emojis do perfil
+        const profileEmoji0 = document.getElementById('profile-emoji-0');
+        const profileEmoji1 = document.getElementById('profile-emoji-1');
+        const profileEmoji2 = document.getElementById('profile-emoji-2');
+        if (profileEmoji0) profileData.profile_emoji_0 = profileEmoji0.value;
+        if (profileEmoji1) profileData.profile_emoji_1 = profileEmoji1.value;
+        if (profileEmoji2) profileData.profile_emoji_2 = profileEmoji2.value;
 
         // Validar mínimo de 4 campos ativos
         const activeFields = [
@@ -6271,6 +6573,7 @@ async function loadFeedWithPost(postId) {
     // setupField(bioEl, 'bio', true);
     // setupAvatar(avatarWrapper);
     */
+}
 
             async function goToCantinho() {
     console.log('Ir para Cantinho');
@@ -6910,35 +7213,35 @@ async function loadFeedWithPost(postId) {
     // TODO: Carregar marquinhas
             }
 
-            // Função para carregar e renderizar assuntos fixados
-            async function loadPinnedAssuntos(profileId) {
-    if (!getPinnedAssuntos) return;
+    // Função para carregar e renderizar assuntos fixados
+    async function loadPinnedAssuntos(profileId) {
+        if (!getPinnedAssuntos) return;
 
     try {
-        const pinnedAssuntos = await getPinnedAssuntos(profileId);
-        const isOwnProfile = currentUser && profileId === currentUser.id;
+            const pinnedAssuntos = await getPinnedAssuntos(profileId);
+            const isOwnProfile = currentUser && profileId === currentUser.id;
 
-        // Renderizar na sidebar esquerda (feed view)
-        const sidebarPinnedList = document.getElementById('right-profile-pinned-list');
-        const sidebarPinnedCount = document.getElementById('right-profile-pinned-count');
-        const sidebarPinnedCard = sidebarPinnedList?.closest('.pinned-topics-card');
+            // Renderizar na sidebar esquerda (feed view)
+            const sidebarPinnedList = document.getElementById('right-profile-pinned-list');
+            const sidebarPinnedCount = document.getElementById('right-profile-pinned-count');
+            const sidebarPinnedCard = sidebarPinnedList?.closest('.pinned-topics-card');
 
-        const getPinnedTitle = (texto) => {
-            if (!texto) return 'Sem título';
-            const div = document.createElement('div');
-            div.innerHTML = texto;
-            const h1 = div.querySelector('h1');
-            if (h1) {
-                return h1.textContent.trim() || 'Sem título';
+            const getPinnedTitle = (texto) => {
+                if (!texto) return 'Sem título';
+                const div = document.createElement('div');
+                div.innerHTML = texto;
+                const h1 = div.querySelector('h1');
+                if (h1) {
+                    return h1.textContent.trim() || 'Sem título';
             }
-            return (div.textContent || div.innerText || '').trim() || 'Sem título';
+                return (div.textContent || div.innerText || '').trim() || 'Sem título';
         };
 
-        if (sidebarPinnedList) {
+            if (sidebarPinnedList) {
             if (pinnedAssuntos.length === 0) {
-                sidebarPinnedList.innerHTML = '<li class="pinned-item"><span class="pinned-title">Nenhum assunto fixado</span></li>';
+                    sidebarPinnedList.innerHTML = '<li class="pinned-item"><span class="pinned-title">Nenhum assunto fixado</span></li>';
             } else {
-                sidebarPinnedList.innerHTML = pinnedAssuntos.map(assunto => `
+                    sidebarPinnedList.innerHTML = pinnedAssuntos.map(assunto => `
         <li class="pinned-item clickable" data-assunto-id="${assunto.id}">
             <svg class="pin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 6px;">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -6950,20 +7253,20 @@ async function loadFeedWithPost(postId) {
             }
         }
 
-        if (sidebarPinnedCount) {
-            sidebarPinnedCount.textContent = `(${pinnedAssuntos.length}/3)`;
+            if (sidebarPinnedCount) {
+                sidebarPinnedCount.textContent = `(${pinnedAssuntos.length}/3)`;
         }
 
-        // Renderizar no Cantinho
-        const cantinhoPinnedList = document.getElementById('cantinho-pinned-list');
-        const cantinhoPinnedCount = document.getElementById('cantinho-pinned-count');
-        const cantinhoPinnedCard = cantinhoPinnedList?.closest('.pinned-topics-card');
+            // Renderizar no Cantinho
+            const cantinhoPinnedList = document.getElementById('cantinho-pinned-list');
+            const cantinhoPinnedCount = document.getElementById('cantinho-pinned-count');
+            const cantinhoPinnedCard = cantinhoPinnedList?.closest('.pinned-topics-card');
 
-        if (cantinhoPinnedList) {
+            if (cantinhoPinnedList) {
             if (pinnedAssuntos.length === 0) {
-                cantinhoPinnedList.innerHTML = '<li class="pinned-item"><span class="pinned-title">Nenhum assunto fixado</span></li>';
+                    cantinhoPinnedList.innerHTML = '<li class="pinned-item"><span class="pinned-title">Nenhum assunto fixado</span></li>';
             } else {
-                cantinhoPinnedList.innerHTML = pinnedAssuntos.map(assunto => `
+                    cantinhoPinnedList.innerHTML = pinnedAssuntos.map(assunto => `
         <li class="pinned-item clickable" data-assunto-id="${assunto.id}">
             <svg class="pin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 6px;">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -6975,25 +7278,25 @@ async function loadFeedWithPost(postId) {
             }
         }
 
-        if (cantinhoPinnedCount) {
-            cantinhoPinnedCount.textContent = `(${pinnedAssuntos.length}/3)`;
+            if (cantinhoPinnedCount) {
+                cantinhoPinnedCount.textContent = `(${pinnedAssuntos.length}/3)`;
         }
 
-        // Esconder card no cantinho se não for dono e não tiver assuntos fixados
-        if (cantinhoPinnedCard) {
-            if (!isOwnProfile && pinnedAssuntos.length === 0) {
-                cantinhoPinnedCard.style.display = 'none';
+            // Esconder card no cantinho se não for dono e não tiver assuntos fixados
+            if (cantinhoPinnedCard) {
+                if (!isOwnProfile && pinnedAssuntos.length === 0) {
+                    cantinhoPinnedCard.style.display = 'none';
             } else {
-                cantinhoPinnedCard.style.display = 'block';
+                    cantinhoPinnedCard.style.display = 'block';
             }
         }
 
     } catch (error) {
-        console.error('Erro ao carregar assuntos fixados:', error);
+            console.error('Erro ao carregar assuntos fixados:', error);
     }
-            }
+}
 
-            async function bindBetaInvitePanel(profileId) {
+    async function bindBetaInvitePanel(profileId) {
     const card = document.getElementById('beta-invites-card');
     const countLabel = document.getElementById('beta-invites-count');
     const createButton = document.getElementById('btn-create-beta-invite');
@@ -8192,130 +8495,33 @@ async function loadFeedWithPost(postId) {
             navigateLightbox(1);
         }
     });
-            }
 
-// Função debounce para busca
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
+    // Expor funções globalmente para onclick no HTML
+    window.toggleLanguage = toggleLanguage;
+    window.goToProfile = goToProfile;
+    window.goToMyCantinho = goToMyCantinho;
+    window.goToSettings = goToSettings;
+    window.openAvatarUpload = openAvatarUpload;
+    window.goToCantinho = goToCantinho;
+    window.handleDarVolta = handleDarVolta;
+    window.showAdminView = showAdminView;
+    window.handleDeleteTag = handleDeleteTag;
+    window.changeUserRole = changeUserRole;
+    window.saveUserRole = saveUserRole;
+
+    // Expor variáveis globais para uso em outros módulos (atualização contínua)
+    window.currentProfile = currentProfile;
+    window.currentUser = currentUser;
+    window.getUserProfile = getUserProfile;
+    window.nextTagPage = nextTagPage;
+    window.prevTagPage = prevTagPage;
+    window.openUsersModal = openUsersModal;
+    window.closeUsersModal = closeUsersModal;
+    window.openTagsModal = openTagsModal;
+    window.closeTagsModal = closeTagsModal;
+
+    // Expor função globalmente
+    window.setupMBTISection = setupMBTISection;
 }
 
-// Função para configurar a seção de MBTI
-function setupMBTISection() {
-    const discoverySection = document.getElementById('mbti-discovery-section');
-    const resultDisplay = document.getElementById('mbti-result-display');
-    const manualInput = document.getElementById('mbti-manual-input');
-    const mbtiDisplayType = document.getElementById('mbti-display-type');
-    const visibilitySection = document.getElementById('mbti-visibility-section');
-    const showMbtiCheckbox = document.getElementById('show-mbti');
-    
-    if (!discoverySection || !resultDisplay || !manualInput) return;
-    
-    // Verificar se o usuário já tem MBTI salvo
-    if (currentProfile && currentProfile.mbti) {
-        // Mostrar resultado salvo
-        discoverySection.classList.add('hidden');
-        resultDisplay.classList.remove('hidden');
-        manualInput.classList.add('hidden');
-
-        // Mostrar checkbox de visibilidade
-        if (visibilitySection) {
-            visibilitySection.classList.remove('hidden');
-        }
-        
-        // Configurar checkbox de visibilidade
-        if (showMbtiCheckbox) {
-            showMbtiCheckbox.checked = currentProfile.show_mbti !== false;
-        }
-        
-        if (mbtiDisplayType) {
-            mbtiDisplayType.textContent = currentProfile.mbti;
-        }
-        
-        // Adicionar evento de clique para mostrar detalhes
-        resultDisplay.onclick = () => {
-            // Usar window para acessar a função do mbti-test.js
-            if (window.showMBTIResultDetail && typeof window.showMBTIResultDetail === 'function') {
-    window.showMBTIResultDetail();
-            }
-        };
-    } else {
-        // Mostrar seção de descoberta
-        discoverySection.classList.remove('hidden');
-        resultDisplay.classList.add('hidden');
-        manualInput.classList.add('hidden');
-
-        // Esconder checkbox de visibilidade
-        if (visibilitySection) {
-            visibilitySection.classList.add('hidden');
-        }
-    }
-    
-    // Configurar botão de descobrir MBTI
-    const discoverBtn = document.getElementById('btn-discover-mbti');
-    if (discoverBtn) {
-        discoverBtn.onclick = () => {
-            if (window.openMBTITest && typeof window.openMBTITest === 'function') {
-    window.openMBTITest();
-            }
-        };
-    }
-    
-    // Configurar botão de adicionar manualmente
-    const manualBtn = document.getElementById('btn-add-mbti-manual');
-    if (manualBtn) {
-        manualBtn.onclick = () => {
-            discoverySection.classList.add('hidden');
-            manualInput.classList.remove('hidden');
-            
-            // Mostrar checkbox de visibilidade também ao adicionar manualmente
-            if (visibilitySection) {
-    visibilitySection.classList.remove('hidden');
-            }
-        };
-    }
-    
-    // Configurar botão de fechar do modal de teste
-    const closeTestBtn = document.getElementById('mbti-test-close');
-    if (closeTestBtn) {
-        closeTestBtn.onclick = () => {
-            if (window.closeMBTITest && typeof window.closeMBTITest === 'function') {
-    window.closeMBTITest();
-            }
-        };
-    }
-}
-
-// Expor funções globalmente para onclick no HTML
-window.toggleLanguage = toggleLanguage;
-window.goToProfile = goToProfile;
-window.goToMyCantinho = goToMyCantinho;
-window.goToSettings = goToSettings;
-window.openAvatarUpload = openAvatarUpload;
-window.goToCantinho = goToCantinho;
-window.handleDarVolta = handleDarVolta;
-window.showAdminView = showAdminView;
-window.handleDeleteTag = handleDeleteTag;
-window.changeUserRole = changeUserRole;
-window.saveUserRole = saveUserRole;
-
-// Expor variáveis globais para uso em outros módulos (atualização contínua)
-window.currentProfile = currentProfile;
-window.currentUser = currentUser;
-window.getUserProfile = getUserProfile;
-window.nextTagPage = nextTagPage;
-window.prevTagPage = prevTagPage;
-window.openUsersModal = openUsersModal;
-window.closeUsersModal = closeUsersModal;
-window.openTagsModal = openTagsModal;
-window.closeTagsModal = closeTagsModal;
-
-// Expor função globalmente
-window.setupMBTISection = setupMBTISection;
+init();

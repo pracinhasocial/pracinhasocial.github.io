@@ -5,6 +5,13 @@
 
 import { t } from '../js/translations.js';
 
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 /**
  * Template HTML do card de perfil
  */
@@ -41,9 +48,7 @@ const PROFILE_CARD_TEMPLATE = `
                 </div>
             </div>
             <div class="profile-badges-row" id="{prefix}-badges-row">
-                <span class="profile-badge" title="Musical">🎵</span>
-                <span class="profile-badge" title="Engraçado">😆</span>
-                <span class="profile-badge" title="Noturno">🌙</span>
+                <!-- Emojis serão carregados dinamicamente -->
             </div>
         </div>
     </div>
@@ -122,6 +127,7 @@ export function updateProfileCard(profile, prefix, options = {}) {
     const site = document.getElementById(`${prefix}-site`);
     const bio = document.getElementById(`${prefix}-bio`);
     const music = document.getElementById(`${prefix}-music`) || document.getElementById(`${prefix}-musica`);
+    const badgesRow = document.getElementById(`${prefix}-badges-row`);
 
     // Atualizar avatar
     if (avatar) {
@@ -162,10 +168,10 @@ export function updateProfileCard(profile, prefix, options = {}) {
         }
     }
 
-    // Atualizar gênero
+    // Atualizar gênero/pronomes
     if (gender) {
-        if (profile.show_genero !== false && profile.genero) {
-            gender.textContent = profile.genero;
+        if (profile.show_pronomes !== false && profile.pronomes) {
+            gender.textContent = profile.pronomes;
             gender.classList.remove('hidden');
         } else {
             gender.classList.add('hidden');
@@ -223,6 +229,22 @@ export function updateProfileCard(profile, prefix, options = {}) {
     // Atualizar música
     if (music) {
         music.textContent = profile.musica || '';
+    }
+
+    // Atualizar emojis do perfil
+    if (badgesRow) {
+        const emojis = [
+            { emoji: profile.profile_emoji_0 || '', label: profile.profile_emoji_label_0 || '' },
+            { emoji: profile.profile_emoji_1 || '', label: profile.profile_emoji_label_1 || '' },
+            { emoji: profile.profile_emoji_2 || '', label: profile.profile_emoji_label_2 || '' }
+        ].filter(item => item.emoji);
+
+        badgesRow.innerHTML = emojis.map(item => `
+            <span class="profile-badge" title="${escapeHtml(item.label)}">
+                <span class="profile-badge-emoji">${item.emoji}</span>
+                ${item.label ? `<span class="profile-badge-label">${escapeHtml(item.label)}</span>` : ''}
+            </span>
+        `).join('');
     }
 }
 

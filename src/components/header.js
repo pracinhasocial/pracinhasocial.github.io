@@ -58,7 +58,7 @@ const headerHTML = `<header class="header">
         </a>
 
         <!-- Botão Cineminha -->
-        <a href="#" class="nav-item" id="nav-item-cineminha">
+        <a href="https://oiakio.github.io/" class="nav-item" id="nav-item-cineminha" target="_blank">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
                 <line x1="7" y1="2" x2="7" y2="22"></line>

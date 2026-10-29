@@ -149,9 +149,11 @@
             </div>
         </div>
 
+        <!-- Header fixo global (fora do main-screen para funcionar em todas as views) -->
+        <div id="header-container"></div>
+
         <!-- Tela principal (Pracinha) -->
         <div id="main-screen" class="screen hidden">
-            <div id="header-container"></div>
 
             <main class="main-content" id="main-content">
                 <!-- Vista do Feed (3 colunas) -->
@@ -168,7 +170,6 @@
                                     <button type="button" class="tag-trigger" id="tag-switch" data-tag="">escolha uma tag</button>
                                     <div class="tag-menu" role="menu" id="tag-menu">
                                         <div class="tag-options-grid" id="tag-options-grid">
-                                            <button type="button" class="tag-option" data-tag="">Sem tag</button>
                                             <!-- Opções serão preenchidas dinamicamente via JavaScript -->
                                         </div>
                                         <div class="tag-pagination" id="tag-pagination">
@@ -221,7 +222,6 @@
                                     </button>
                                 </div>
                                 <select id="assunto-tag" class="tag-select hidden">
-                                    <option value="">Sem tag</option>
                                     <!-- Opções serão preenchidas dinamicamente via JavaScript -->
                                 </select>
                                 <button class="btn btn-primary btn-small" id="btn-postar-assunto"
@@ -1284,6 +1284,37 @@
                                             <input type="text" id="profile-mbti" placeholder="Ex: INFP">
                                         </div>
                                     </div>
+
+                                    <!-- EMOJIS DO PERFIL -->
+                                    <div class="form-group">
+                                        <label data-i18n="label.profileEmojis">🎭 Emojis do Perfil</label>
+                                        <small class="form-hint" data-i18n="label.profileEmojiHint">Escolha 3 emojis para aparecer no seu perfil</small>
+                                        <div class="profile-emojis-selector">
+                                            <div class="emoji-slot" data-slot="0">
+                                                <button type="button" class="emoji-slot-btn" id="emoji-slot-0">+</button>
+                                                <input type="hidden" id="profile-emoji-0" value="">
+                                                <input type="text" id="profile-emoji-label-0" placeholder="Legenda / característica" data-i18n-placeholder="label.emojiLabelPlaceholder" class="emoji-label-input">
+                                            </div>
+                                            <div class="emoji-slot" data-slot="1">
+                                                <button type="button" class="emoji-slot-btn" id="emoji-slot-1">+</button>
+                                                <input type="hidden" id="profile-emoji-1" value="">
+                                                <input type="text" id="profile-emoji-label-1" placeholder="Legenda / característica" data-i18n-placeholder="label.emojiLabelPlaceholder" class="emoji-label-input">
+                                            </div>
+                                            <div class="emoji-slot" data-slot="2">
+                                                <button type="button" class="emoji-slot-btn" id="emoji-slot-2">+</button>
+                                                <input type="hidden" id="profile-emoji-2" value="">
+                                                <input type="text" id="profile-emoji-label-2" placeholder="Legenda / característica" data-i18n-placeholder="label.emojiLabelPlaceholder" class="emoji-label-input">
+                                            </div>
+                                        </div>
+                                        <div id="emoji-picker-modal" class="emoji-picker-modal hidden">
+                                            <div class="emoji-picker-content">
+                                                <div class="emoji-picker-grid" id="emoji-picker-grid">
+                                                    <!-- Emojis serão carregados aqui -->
+                                                </div>
+                                                <button type="button" class="btn btn-secondary" id="close-emoji-picker">Fechar</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- BOTÃO DE SALVAR -->
@@ -1317,6 +1348,22 @@
                                     <label data-i18n="settings.language">Idioma</label>
                                     <button type="button" class="lang-toggle-btn" id="lang-toggle-settings">🇧🇷 PT</button>
                                 </div>
+
+                                <!-- Instalar PWA -->
+                                <div class="form-group pwa-install-card">
+                                    <h3 class="settings-section-title" data-i18n="pwa.installSettingsTitle">Instalar o Pracinha</h3>
+                                    <p class="form-hint" data-i18n="pwa.installSettingsText">Instale o app para usar a Pracinha como um aplicativo no seu celular.</p>
+                                    <button type="button" class="btn btn-primary btn-full" id="btn-install-pwa-settings" data-i18n="pwa.installSettingsBtn">Instalar aplicativo</button>
+                                    <div id="pwa-install-manual" class="pwa-install-manual hidden">
+                                        <p class="pwa-manual-title" data-i18n="pwa.installManualTitle">Não consegue instalar?</p>
+                                        <p class="pwa-manual-text" data-i18n="pwa.installManualText">Adicione manualmente à tela inicial:</p>
+                                        <ul class="pwa-manual-list">
+                                            <li data-i18n="pwa.manualIos">Safari: toque em "Compartilhar" → "Adicionar à Tela de Início"</li>
+                                            <li data-i18n="pwa.manualAndroid">Chrome: toque no menu (⋮) → "Adicionar à tela inicial"</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
                                 <button type="submit" class="btn btn-primary" data-i18n="btn.saveProfile">Salvar
                                     alterações</button>
                             </form>
@@ -1378,13 +1425,6 @@
                             <h3 class="card-title" data-i18n="sidebar.pinnedTopics">Assuntos fixados <span class="pinned-count"
                                     id="cantinho-pinned-count">(0/3)</span></h3>
                             <ul class="pinned-list" id="cantinho-pinned-list"></ul>
-                        </div>
-
-                        <div class="sidebar-card beta-invites-card hidden" id="beta-invites-card">
-                            <h3 class="card-title">Convites <span id="beta-invites-count">0/3</span></h3>
-                            <p class="beta-invites-hint">Convide pessoas para testar a Pracinha.</p>
-                            <button class="btn-text-link" id="btn-create-beta-invite" type="button">Gerar convite</button>
-                            <div class="beta-invites-list" id="beta-invites-list"></div>
                         </div>
 
                         <!-- Bloco X pessoas na pracinha agora -->

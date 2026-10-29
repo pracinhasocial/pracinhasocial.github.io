@@ -166,8 +166,15 @@ export async function isAdmin(userId) {
 export async function getUserAssuntos(userId) {
   const { data, error } = await supabase
     .from('assuntos')
-    .select('*, profiles!inner(*)')
+    .select(`
+      *,
+      profiles!inner(*),
+      respostas(id, texto, criado_em, autor:profiles(id, apelido, nome, fotos, username)),
+      reactions(emoji, autor),
+      poll_votes(visitante, option_index)
+    `)
     .eq('autor', userId)
+    .gt('expira_em', new Date().toISOString())
     .order('criado_em', { ascending: false });
 
   if (error) {
