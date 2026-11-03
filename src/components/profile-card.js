@@ -46,9 +46,9 @@ const PROFILE_CARD_TEMPLATE = `
                 <div class="avatar-large" id="{prefix}-avatar-container">
                     <img src="" alt="Avatar" id="{prefix}-avatar" class="profile-avatar-large">
                 </div>
-            </div>
-            <div class="profile-badges-row" id="{prefix}-badges-row">
-                <!-- Emojis serão carregados dinamicamente -->
+                <div class="profile-badges-row" id="{prefix}-badges-row">
+                    <!-- Emojis serão carregados dinamicamente -->
+                </div>
             </div>
         </div>
     </div>

@@ -46,6 +46,39 @@ let getAllTags = null;
 let createTag = null;
 let votePollOption = null;
 let getPollVotes = null;
+
+// Paginação do feed
+let currentFeedPage = 1;
+const POSTS_PER_PAGE = 5;
+
+// Listas de fontes disponíveis
+const FONT_TITLES = [
+    '',
+    'Cherry Bomb One',
+    'Chicle',
+    'Bagel Fat One',
+    'Emblema One',
+    'UnifrakturMaguntia',
+    'Bitcount Prop Single',
+    'Happy Monkey',
+    'Mea Culpa',
+    'Rock Salt',
+    'Bangers'
+];
+
+const FONT_BODIES = [
+    '',
+    'Sour Gummy',
+    'Lekton',
+    'Gamja Flower',
+    'Handlee',
+    'Cinzel',
+    'Amiri',
+    'Betania Patmos',
+    'Elsie',
+    'Baloo Thambi 2',
+    'Comic Relief'
+];
 let editingAssuntoId = null;
 let updateTag = null;
 let deleteTag = null;
@@ -263,7 +296,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (getAllTags) {
             try {
                 tagsCache = await getAllTags();
-                populateTagSelect();
+                await populateTagSelect();
                 populateFeedTagFilter();
             } catch (error) {
                 console.warn('Não foi possível carregar tags do banco:', error);
@@ -1194,8 +1227,28 @@ function setupEventListeners() {
     // Event listeners para preview de fontes
     const fontTitleSelect = document.getElementById('font-title');
     const fontBodySelect = document.getElementById('font-body');
-    if (fontTitleSelect) fontTitleSelect.addEventListener('change', updateFontPreview);
-    if (fontBodySelect) fontBodySelect.addEventListener('change', updateFontPreview);
+    if (fontTitleSelect) fontTitleSelect.addEventListener('change', () => { updateFontPreview(); updateSettingsProfilePreview(); });
+    if (fontBodySelect) fontBodySelect.addEventListener('change', () => { updateFontPreview(); updateSettingsProfilePreview(); });
+
+    // Aplicar tamanho de fonte instantaneamente ao mostrário do sidebar
+    function applyFontSizeToSidebar() {
+        const apelidoSize = document.getElementById('apelido-font-size')?.value || 48;
+        const bodySize = document.getElementById('body-font-size')?.value || 13;
+        const preview = document.getElementById('settings-profile-preview');
+        if (!preview) return;
+
+        // Tamanho do apelido no sidebar
+        const apelidoEls = preview.querySelectorAll('[id$="-apelido"], .profile-apelido-title');
+        apelidoEls.forEach(el => {
+            el.style.fontSize = `${apelidoSize}px`;
+        });
+
+        // Tamanho do corpo no sidebar
+        const bodyEls = preview.querySelectorAll('.profile-bio, .profile-name-small, .profile-username, .profile-age, .profile-gender, .profile-sexuality, .profile-mbti, .profile-location, .assunto-text');
+        bodyEls.forEach(el => {
+            el.style.fontSize = `${bodySize}px`;
+        });
+    }
 
     // Event listener para controle de tamanho do apelido
     const apelidoFontSizeInput = document.getElementById('apelido-font-size');
@@ -1204,6 +1257,7 @@ function setupEventListeners() {
         apelidoFontSizeInput.addEventListener('input', (e) => {
             apelidoFontSizeValue.textContent = `${e.target.value}px`;
             updateFontPreview();
+            applyFontSizeToSidebar();
         });
     }
 
@@ -1214,6 +1268,7 @@ function setupEventListeners() {
         bodyFontSizeInput.addEventListener('input', (e) => {
             bodyFontSizeValue.textContent = `${e.target.value}px`;
             updateFontPreview();
+            applyFontSizeToSidebar();
             updateSettingsProfilePreview();
         });
     }
@@ -1520,8 +1575,9 @@ function setupEventListeners() {
     const assuntoCounter = document.getElementById('assunto-counter');
 
     if (tagSwitch) {
-        tagSwitch.addEventListener('click', (e) => {
+        tagSwitch.addEventListener('click', async (e) => {
             e.stopPropagation();
+            await populateTagSelect();
             if (tagDropdown) {
                 tagDropdown.classList.toggle('open');
             }
@@ -1539,6 +1595,29 @@ function setupEventListeners() {
             }
         }
     });
+
+    // Compartilhar o site
+    const btnShareSite = document.getElementById('btn-share-site');
+    if (btnShareSite) {
+        btnShareSite.addEventListener('click', async () => {
+            const shareData = {
+                title: 'Pracinha',
+                text: 'Venha conversar comigo na Pracinha!',
+                url: window.location.origin
+            };
+            try {
+                if (navigator.share) {
+                    await navigator.share(shareData);
+                } else {
+                    // Fallback: copiar URL para a área de transferência
+                    await navigator.clipboard.writeText(window.location.origin);
+                    alert('Link copiado! Cole onde quiser compartilhar.');
+                }
+            } catch (err) {
+                console.log('Erro ao compartilhar:', err);
+            }
+        });
+    }
 
     // Ver Todos Visitantes
     document.querySelectorAll('#btn-ver-todos-visitantes, #btn-ver-todos-visitantes-cantinho').forEach(btn => {
@@ -3107,6 +3186,7 @@ async function handlePostarAssunto() {
 
         document.getElementById('assunto-text').value = '';
         updateSelectedTagChoice('');
+        selectedAssuntoImageFile = null;
 
         // Limpar preview de imagem
         const preview = document.getElementById('composer-image-preview');
@@ -3954,7 +4034,7 @@ function closeAdminAnuncioCompleto() {
     }
 }
 
-async function loadFeed() {
+async function loadFeed(resetPage = true) {
     console.log('loadFeed chamado');
     const feedContent = document.getElementById('feed-content');
     console.log('feed-content encontrado:', feedContent);
@@ -4065,6 +4145,7 @@ async function loadFeed() {
         if (!data || data.length === 0) {
             feedContent.classList.remove('is-updating');
             feedContent.innerHTML = `<p class="feed-empty">${t('feed.empty', currentLanguage)}</p>`;
+            renderFeedPagination(0, 1);
             return;
         }
 
@@ -4108,16 +4189,37 @@ async function loadFeed() {
         // Ordenar por data decrescente
         feedItems.sort((a, b) => b.date - a.date);
 
-        if (feedItems.length === 0) {
+        // Controlar página atual
+        if (resetPage) {
+            currentFeedPage = 1;
+        }
+
+        // Aplicar paginação (5 posts por página)
+        const totalPages = Math.ceil(feedItems.length / POSTS_PER_PAGE);
+        // Garantir que a página atual não exceda o total
+        if (currentFeedPage > totalPages && totalPages > 0) {
+            currentFeedPage = totalPages;
+        }
+        if (currentFeedPage < 1) {
+            currentFeedPage = 1;
+        }
+
+        const startIndex = (currentFeedPage - 1) * POSTS_PER_PAGE;
+        const endIndex = startIndex + POSTS_PER_PAGE;
+        const pageItems = feedItems.slice(startIndex, endIndex);
+
+        if (pageItems.length === 0) {
             feedContent.classList.remove('is-updating');
             feedContent.innerHTML = `<p class="feed-empty">${t('feed.empty', currentLanguage)}</p>`;
+            renderFeedPagination(totalPages, currentFeedPage);
             return;
         }
 
         // Atualizar sidebar de tags da semana com os dados já buscados (sem query extra)
         renderTrendingTopics(data || [], 'sidebar-tags-container');
 
-        await renderMixedFeed(feedItems, feedContent);
+        await renderMixedFeed(pageItems, feedContent);
+        renderFeedPagination(totalPages, currentFeedPage);
         // Dropdowns are handled by global event listener on document
         feedContent.classList.remove('is-updating');
 
@@ -4131,6 +4233,48 @@ async function loadFeed() {
         feedContent.innerHTML = '<p class="feed-error">' + t('feed.errorLoadRetry', currentLanguage) + '</p>';
     }
 }
+
+// Renderizar controles de paginação do feed
+function renderFeedPagination(totalPages, currentPage) {
+    const paginationContainer = document.getElementById('feed-pagination');
+    const pageInfo = document.getElementById('feed-page-info');
+    const firstBtn = document.getElementById('feed-first-page');
+    const prevBtn = document.getElementById('feed-prev-page');
+    const nextBtn = document.getElementById('feed-next-page');
+
+    if (!paginationContainer) return;
+
+    if (totalPages <= 1) {
+        paginationContainer.classList.add('hidden');
+        return;
+    }
+
+    paginationContainer.classList.remove('hidden');
+    if (pageInfo) pageInfo.textContent = `${currentPage} / ${totalPages}`;
+    const isFirst = currentPage <= 1;
+    const isLast = currentPage >= totalPages;
+    if (firstBtn) firstBtn.disabled = isFirst;
+    if (prevBtn) prevBtn.disabled = isFirst;
+    if (nextBtn) nextBtn.disabled = isLast;
+}
+
+// Event listeners da paginação do feed
+document.getElementById('feed-first-page')?.addEventListener('click', () => {
+    currentFeedPage = 1;
+    loadFeed(false);
+});
+
+document.getElementById('feed-prev-page')?.addEventListener('click', () => {
+    if (currentFeedPage > 1) {
+        currentFeedPage--;
+        loadFeed(false);
+    }
+});
+
+document.getElementById('feed-next-page')?.addEventListener('click', () => {
+    currentFeedPage++;
+    loadFeed(false);
+});
 
 async function loadFeedWithPost(postId) {
     const feedContent = document.getElementById('feed-content');
@@ -4436,25 +4580,34 @@ async function loadFeedWithPost(postId) {
             function getTagDisplay(rawValue) {
     if (!rawValue) return '';
 
+    // Normalizar valor bruto (remover acentos, lowerCase)
+    const normalized = rawValue
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/--+/g, '-')  // colapsar traços duplos em um
+
     // Se temos tags do banco, usar cache
     if (tagsCache && tagsCache.length > 0) {
-        const normalized = rawValue
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase();
+        // Tentar por slug normalizado
+        let tag = tagsCache.find(t => t.slug === normalized);
 
-        const tag = tagsCache.find(t => t.slug === normalized);
+        // Tentar por valor original (com acentos)
+        if (!tag) {
+            tag = tagsCache.find(t => t.slug === rawValue.toLowerCase());
+        }
+
+        // Tentar por slug com traços duplos colapsados
+        if (!tag) {
+            tag = tagsCache.find(t => t.slug === normalized.replace(/-+/g, '-'));
+        }
+
         if (tag) {
             return `${tag.emoji} ${tag.nome}`;
         }
     }
 
     // Fallback para mapa estático (compatibilidade)
-    const normalized = rawValue
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase();
-
     const tagMap = {
         musica: '🎵 Música',
         jogos: '🎮 Jogos',
@@ -4477,50 +4630,82 @@ async function loadFeedWithPost(postId) {
         books: '📚 Livros',
         coffee: '☕ Café',
         daily: '🌅 Cotidiano',
-        travel: '✈️ Viagem'
+        travel: '✈️ Viagem',
+        atencao: '⚠️ Atenção'
     };
 
-    return tagMap[normalized] || rawValue;
+    return tagMap[normalized] || `🏷️ ${rawValue}`;
             }
 
             // Popular select de tags com tags do banco
-            function populateTagSelect() {
+            async function populateTagSelect() {
     const tagSelect = document.getElementById('assunto-tag');
     const tagOptionsGrid = document.getElementById('tag-options-grid');
 
-    if (!tagSelect) {
+    if (!tagOptionsGrid) {
         return;
     }
 
-    // Se temos tags do banco, usar elas
-    if (tagsCache && tagsCache.length > 0) {
-        // Popular o select escondido
-        tagSelect.innerHTML = tagsCache.map(tag =>
-                `<option value="${escapeHtml(tag.slug)}">${escapeHtml(tag.emoji)} ${escapeHtml(tag.nome)}</option>`
-            ).join('');
+    // Sempre recarregar tags do banco quando abrir o dropdown
+    if (getAllTags) {
+        try {
+            const tags = await getAllTags();
+            tagsCache = tags;
 
-        // Popular o menu visível com paginação
-        renderTagPage();
+            if (tags && tags.length > 0) {
+                // Popular o select escondido (se existir)
+                if (tagSelect) {
+                    tagSelect.innerHTML = tags.map(tag =>
+                            `<option value="${escapeHtml(tag.slug)}">${escapeHtml(tag.emoji)} ${escapeHtml(tag.nome)}</option>`
+                        ).join('');
+                }
+
+                // Popular o menu visível com todas as tags
+                renderTagPage();
+            } else {
+                // Fallback para tags estáticas
+                if (tagSelect) {
+                    tagSelect.innerHTML = `
+                        <option value="música">🎵 Música</option>
+                        <option value="jogos">🎮 Jogos</option>
+                        <option value="livros">📚 Livros</option>
+                        <option value="café">☕ Café</option>
+                        <option value="cotidiano">🌅 Cotidiano</option>
+                    `;
+                }
+
+                tagOptionsGrid.innerHTML = `
+                    <button type="button" class="tag-option" data-tag="música">🎵 Música</button>
+                    <button type="button" class="tag-option" data-tag="jogos">🎮 Jogos</button>
+                    <button type="button" class="tag-option" data-tag="livros">📚 Livros</button>
+                    <button type="button" class="tag-option" data-tag="café">☕ Café</button>
+                    <button type="button" class="tag-option" data-tag="cotidiano">🌅 Cotidiano</button>
+                    <button type="button" class="tag-option" data-tag="viagem">✈️ Viagem</button>
+                `;
+            }
+        } catch (error) {
+            console.warn('Não foi possível carregar tags:', error);
+        }
     } else {
-        // Fallback para tags estáticas
-        tagSelect.innerHTML = `
-            <option value="música">🎵 Música</option>
-            <option value="jogos">🎮 Jogos</option>
-            <option value="livros">📚 Livros</option>
-            <option value="café">☕ Café</option>
-            <option value="cotidiano">🌅 Cotidiano</option>
-        `;
-
-        if (tagOptionsGrid) {
-            tagOptionsGrid.innerHTML = `
-    <button type="button" class="tag-option" data-tag="música">🎵 Música</button>
-    <button type="button" class="tag-option" data-tag="jogos">🎮 Jogos</button>
-    <button type="button" class="tag-option" data-tag="livros">📚 Livros</button>
-    <button type="button" class="tag-option" data-tag="café">☕ Café</button>
-    <button type="button" class="tag-option" data-tag="cotidiano">🌅 Cotidiano</button>
-    <button type="button" class="tag-option" data-tag="viagem">✈️ Viagem</button>
+        // Sem Supabase - usar fallback estático
+        if (tagSelect) {
+            tagSelect.innerHTML = `
+                <option value="música">🎵 Música</option>
+                <option value="jogos">🎮 Jogos</option>
+                <option value="livros">📚 Livros</option>
+                <option value="café">☕ Café</option>
+                <option value="cotidiano">🌅 Cotidiano</option>
             `;
         }
+
+        tagOptionsGrid.innerHTML = `
+            <button type="button" class="tag-option" data-tag="música">🎵 Música</button>
+            <button type="button" class="tag-option" data-tag="jogos">🎮 Jogos</button>
+            <button type="button" class="tag-option" data-tag="livros">📚 Livros</button>
+            <button type="button" class="tag-option" data-tag="café">☕ Café</button>
+            <button type="button" class="tag-option" data-tag="cotidiano">🌅 Cotidiano</button>
+            <button type="button" class="tag-option" data-tag="viagem">✈️ Viagem</button>
+        `;
     }
             }
 
@@ -4724,7 +4909,7 @@ async function loadFeedWithPost(postId) {
     emojiPickerTarget = null;
             }
 
-            const SCROLL_TOP_THRESHOLD = 320;
+            const SCROLL_TOP_THRESHOLD = 10;
 
             function getScrollTopContainer() {
     const settingsContent = document.querySelector('.settings-content');
@@ -6480,6 +6665,9 @@ function timeAgo(dateString) {
 
     // Atualizar mostrário do perfil em tempo real
     updateSettingsProfilePreview();
+
+    // Aplicar tamanhos de fonte instantaneamente ao mostrário
+    applyFontSizeToSidebar();
 
     // Aplicar fontes ao cantinho pessoal
     applyUserFonts(currentProfile);
@@ -9169,27 +9357,18 @@ function resetUserFonts() {
 function updateFontPreview() {
     const fontTitle = document.getElementById('font-title')?.value;
     const fontBody = document.getElementById('font-body')?.value;
-    const apelidoFontSize = document.getElementById('apelido-font-size')?.value || 48;
-    const bodyFontSize = document.getElementById('body-font-size')?.value || 13;
     const previewTitle = document.getElementById('font-preview-title');
     const previewText = document.getElementById('font-preview-text');
 
+    // Preview mostra fonte em tamanho padrão (não afetado pelos sliders)
     if (previewTitle) {
-        if (fontTitle) {
-            previewTitle.style.fontFamily = `'${fontTitle}', sans-serif`;
-        } else {
-            previewTitle.style.fontFamily = '';
-        }
-        previewTitle.style.fontSize = `${apelidoFontSize}px`;
+        previewTitle.style.fontFamily = fontTitle ? `'${fontTitle}', sans-serif` : "'Google Sans', system-ui, -apple-system, sans-serif";
+        previewTitle.style.fontSize = '';
     }
 
     if (previewText) {
-        if (fontBody) {
-            previewText.style.fontFamily = `'${fontBody}', sans-serif`;
-        } else {
-            previewText.style.fontFamily = '';
-        }
-        previewText.style.fontSize = `${bodyFontSize}px`;
+        previewText.style.fontFamily = fontBody ? `'${fontBody}', sans-serif` : "'Google Sans', system-ui, -apple-system, sans-serif";
+        previewText.style.fontSize = '';
     }
 }
 
@@ -10192,6 +10371,7 @@ let currentLightboxPhotos = [];
 let currentLightboxIndex = 0;
 let currentLightboxUserId = null;
 let currentLightboxIsOwner = false;
+let lightboxZoomed = false;
 
 function openPhotoLightbox(photos, photoId, isOwner, userId) {
     currentLightboxPhotos = photos;
@@ -10222,9 +10402,64 @@ function openPhotoLightbox(photos, photoId, isOwner, userId) {
     // Atualizar estado dos botões de navegação
     updateLightboxNavButtons();
 
+    // Resetar zoom
+    lightboxZoomed = false;
+    lightboxImage.classList.remove('zoomed');
+    lightboxImage.style.transform = 'scale(1)';
+    const lightboxZoomBtn = document.getElementById('lightbox-zoom-btn');
+    if (lightboxZoomBtn) {
+        lightboxZoomBtn.textContent = '🔍';
+        lightboxZoomBtn.title = 'Zoom';
+    }
+
     // Prevenir scroll do body
     document.body.style.overflow = 'hidden';
 }
+
+// Abrir uma única foto na lightbox (usado em fotos de post)
+function openSinglePhotoLightbox(url, alt) {
+    currentLightboxPhotos = [{ id: 'single', url, alt }];
+    currentLightboxIndex = 0;
+    currentLightboxUserId = null;
+    currentLightboxIsOwner = false;
+
+    const lightbox = document.getElementById('photo-lightbox');
+    const lightboxImage = document.getElementById('lightbox-image');
+    const lightboxCounter = document.getElementById('lightbox-counter');
+    const lightboxDelete = document.getElementById('lightbox-delete');
+    const lightboxPrev = document.getElementById('lightbox-prev');
+    const lightboxNext = document.getElementById('lightbox-next');
+
+    lightbox.classList.remove('hidden');
+    lightboxImage.src = url;
+    lightboxImage.alt = alt || '';
+    lightboxCounter.textContent = `1 / 1`;
+
+    lightboxDelete.classList.add('hidden');
+    lightboxPrev.disabled = true;
+    lightboxNext.disabled = true;
+
+    // Resetar zoom
+    lightboxZoomed = false;
+    lightboxImage.classList.remove('zoomed');
+    lightboxImage.style.transform = 'scale(1)';
+    const lightboxZoomBtn = document.getElementById('lightbox-zoom-btn');
+    if (lightboxZoomBtn) {
+        lightboxZoomBtn.textContent = '🔍';
+        lightboxZoomBtn.title = 'Zoom';
+    }
+
+    document.body.style.overflow = 'hidden';
+}
+
+// Delegação de clique em fotos de post para abrir lightbox
+document.addEventListener('click', (e) => {
+    const img = e.target.closest('.assunto-image');
+    if (img) {
+        e.preventDefault();
+        openSinglePhotoLightbox(img.src, img.alt);
+    }
+}, { passive: false });
 
 function closePhotoLightbox() {
     const lightbox = document.getElementById('photo-lightbox');
@@ -10235,6 +10470,17 @@ function closePhotoLightbox() {
     currentLightboxIndex = 0;
     currentLightboxUserId = null;
     currentLightboxIsOwner = false;
+    lightboxZoomed = false;
+    const lightboxImageClose = document.getElementById('lightbox-image');
+    if (lightboxImageClose) {
+        lightboxImageClose.classList.remove('zoomed');
+        lightboxImageClose.style.transform = 'scale(1)';
+    }
+    const lightboxZoomBtnClose = document.getElementById('lightbox-zoom-btn');
+    if (lightboxZoomBtnClose) {
+        lightboxZoomBtnClose.textContent = '🔍';
+        lightboxZoomBtnClose.title = 'Zoom';
+    }
 }
 
 function updateLightboxNavButtons() {
@@ -10254,6 +10500,16 @@ function navigateLightbox(direction) {
 
     const lightboxImage = document.getElementById('lightbox-image');
     const lightboxCounter = document.getElementById('lightbox-counter');
+    const lightboxZoomBtn = document.getElementById('lightbox-zoom-btn');
+
+    // Resetar zoom ao trocar de foto
+    lightboxZoomed = false;
+    lightboxImage.classList.remove('zoomed');
+    lightboxImage.style.transform = 'scale(1)';
+    if (lightboxZoomBtn) {
+        lightboxZoomBtn.textContent = '🔍';
+        lightboxZoomBtn.title = 'Zoom';
+    }
 
     lightboxImage.src = currentLightboxPhotos[currentLightboxIndex].url;
     lightboxCounter.textContent = `${currentLightboxIndex + 1} / ${currentLightboxPhotos.length}`;
@@ -10401,6 +10657,7 @@ async function loadAdminTags() {
 
     try {
         const tags = await getAllTags();
+        tagsCache = tags;
         const tagsTable = document.getElementById('admin-tags-table');
 
         if (!tagsTable) return;
@@ -10851,6 +11108,55 @@ function setupAdminNavigation() {
         lightboxDelete.addEventListener('click', deleteCurrentLightboxPhoto);
     }
 
+    // Zoom na lightbox
+    const lightboxZoomBtn = document.getElementById('lightbox-zoom-btn');
+    const lightboxImage = document.getElementById('lightbox-image');
+
+    if (lightboxZoomBtn && lightboxImage) {
+        lightboxZoomBtn.addEventListener('click', () => {
+            lightboxZoomed = !lightboxZoomed;
+            lightboxImage.classList.toggle('zoomed', lightboxZoomed);
+            lightboxImage.style.transform = lightboxZoomed ? 'scale(2)' : 'scale(1)';
+            lightboxZoomBtn.textContent = lightboxZoomed ? '✖' : '🔍';
+            lightboxZoomBtn.title = lightboxZoomed ? 'Reduzir' : 'Zoom';
+        });
+
+        lightboxImage.addEventListener('dblclick', () => {
+            lightboxZoomed = !lightboxZoomed;
+            lightboxImage.classList.toggle('zoomed', lightboxZoomed);
+            lightboxImage.style.transform = lightboxZoomed ? 'scale(2)' : 'scale(1)';
+            lightboxZoomBtn.textContent = lightboxZoomed ? '✖' : '🔍';
+            lightboxZoomBtn.title = lightboxZoomed ? 'Reduzir' : 'Zoom';
+        });
+    }
+
+    // Swipe para navegar entre fotos na lightbox
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    const lightbox = document.getElementById('photo-lightbox');
+    if (lightbox) {
+        lightbox.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        lightbox.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+    }
+
+    function handleSwipe() {
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0) {
+                navigateLightbox(1); // swipe esquerda -> próxima
+            } else {
+                navigateLightbox(-1); // swipe direita -> anterior
+            }
+        }
+    }
+
     // Navegação com teclado no lightbox
     document.addEventListener('keydown', (e) => {
         const lightbox = document.getElementById('photo-lightbox');
@@ -11028,6 +11334,7 @@ window.showAdminView = showAdminView;
 window.handleDeleteTag = handleDeleteTag;
 window.changeUserRole = changeUserRole;
 window.saveUserRole = saveUserRole;
+window.switchSettingsSection = switchSettingsSection;
 
 // Expor variáveis globais para uso em outros módulos (atualização contínua)
 window.currentProfile = currentProfile;

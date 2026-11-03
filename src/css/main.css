@@ -660,6 +660,7 @@ body {
     --bg-secondary: #FFFFFF;
     --text-primary: #2D2D2D;
     --text-secondary: #6B6B6B;
+    --card-bg: #FFFFFF;
     --accent-primary: #1c913f;
     --accent-primary-hover: #3D6649;
     --accent-secondary: #8B7355;
@@ -679,6 +680,7 @@ body {
     --text-primary: #F5F5F0;
     --text-secondary: #B8B8B8;
     --border-color: #3D3D3D;
+    --card-bg: #2D2D2D;
 }
 
 /* Reset e base */
@@ -1546,36 +1548,50 @@ textarea {
     gap: 12px;
 }
 
-.font-group {
+.font-nav-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 }
 
-.font-group label {
-    font-size: 13px;
-    font-weight: 500;
+.font-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
     color: var(--text-primary);
 }
 
-.font-group select {
-    padding: 8px 12px;
+.font-nav-btn {
+    background: transparent;
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    background: var(--card-bg);
+    padding: 6px 12px;
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
-    transition: border-color 0.2s ease;
+    transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
-.font-group select:hover {
+.font-nav-btn:hover {
+    background: var(--accent-subtle);
     border-color: var(--accent-primary);
 }
 
-.font-group select:focus {
-    outline: none;
-    border-color: var(--accent-primary);
+.font-current {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    flex: 1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .font-preview-box {
@@ -2067,11 +2083,7 @@ textarea {
 }
 
 .tag-pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px;
-    border-top: 1px solid var(--border-color);
+    display: none !important;
 }
 
 .tag-nav-btn {
@@ -2397,8 +2409,58 @@ textarea {
     text-align: center;
     color: var(--text-secondary);
     font-size: 14px;
-    width: 100%;
-    box-sizing: border-box;
+}
+
+.feed-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.feed-pagination.hidden {
+    display: none;
+}
+
+.pagination-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: var(--accent-primary);
+    background: var(--accent-subtle);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-btn#feed-first-page {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    font-weight: 600;
+}
+
+.pagination-btn#feed-first-page:hover:not(:disabled) {
+    filter: brightness(1.1);
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 /* Assunto cards */
@@ -2636,11 +2698,15 @@ textarea {
 }
 
 .assunto-image {
-    width: 100%;
+    max-width: 480px;
     max-height: 400px;
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
     border-radius: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    background-color: var(--bg-primary);
+    display: block;
 }
 
 .assunto-video-wrapper {
@@ -3176,9 +3242,11 @@ textarea {
     padding: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 2px;
-    width: 280px;
+    grid-template-columns: repeat(8, minmax(32px, 1fr));
+    gap: 4px;
+    width: auto;
+    min-width: 260px;
+    box-sizing: border-box;
 }
 
 .emoji-picker-item {
@@ -4152,6 +4220,58 @@ textarea {
     margin-bottom: 12px;
 }
 
+.share-site-card {
+    text-align: center;
+}
+
+.id-card-site {
+    text-align: center;
+}
+
+.id-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px;
+}
+
+.id-card-logo {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-primary);
+    margin-bottom: 2px;
+}
+
+.id-card-logo img {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    border-radius: 12px;
+    display: block;
+    margin: 0 auto;
+}
+
+.id-card-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent-primary);
+    margin: 0;
+}
+
+.id-card-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.id-card-version {
+    font-size: 11px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    margin: 0;
+}
+
 .card-header-row {
     display: flex;
     align-items: center;
@@ -4162,6 +4282,19 @@ textarea {
 .profile-preview-card,
 .settings-profile-preview {
     width: var(--settings-sidebar-width);
+    box-sizing: border-box;
+}
+
+/* Quando o card de preview está dentro do card de configurações, não deve ter borda/fundo/preenchimento próprio:
+   eles se tornam uma coisa só, sem "card dentro de card". */
+.settings-profile-preview .profile-preview-card {
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
 }
 
@@ -4336,8 +4469,12 @@ textarea {
 .profile-avatar-wrapper {
     position: relative;
     width: 120px;
-    height: 190px;
+    height: 240px;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
 }
 
 .avatar-large {
@@ -4664,8 +4801,10 @@ textarea {
 .profile-badges-row {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     flex-wrap: wrap;
+    width: 100%;
 }
 
 .profile-badge {
@@ -4770,17 +4909,20 @@ textarea {
     background: var(--bg-primary);
     border-radius: 12px;
     padding: 20px;
-    max-width: 400px;
-    width: 90%;
-    max-height: 80vh;
+    max-width: 90vw;
+    width: auto;
+    max-height: 85vh;
     overflow-y: auto;
+    overflow-x: visible;
+    box-sizing: border-box;
 }
 
 .emoji-picker-grid {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(8, minmax(40px, 1fr));
     gap: 8px;
     margin-bottom: 16px;
+    overflow: visible;
 }
 
 .emoji-picker-item {
@@ -5151,6 +5293,36 @@ textarea {
     max-height: 90vh;
     object-fit: contain;
     border-radius: 8px;
+    cursor: zoom-in;
+    transition: transform 0.2s ease;
+    display: block;
+}
+
+.lightbox-content img.zoomed {
+    cursor: zoom-out;
+}
+
+.lightbox-zoom-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: 48px;
+    height: 48px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background-color 150ms ease-in-out;
+}
+
+.lightbox-zoom-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 .lightbox-delete {

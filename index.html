@@ -163,6 +163,17 @@
                         <!-- Botão fechar formulário mobile -->
                         <button class="close-post-form-btn hidden" id="close-post-form-btn" aria-label="Fechar">×</button>
                         
+                        <!-- ID Card do site -->
+                        <div class="sidebar-card id-card-site">
+                                <div class="id-card-content">
+                                    <div class="id-card-logo">
+                                        <img src="src/components/logo.webp" alt="Pracinha Logo">
+                                    </div>
+                                    <h3 class="id-card-title">Pracinha</h3>
+                                    <p class="id-card-subtitle">um mini-espaço social.</p>
+                                </div>
+                        </div>
+
                         <!-- Barra para postar assunto -->
                         <div class="post-assunto">
                             <div class="post-assunto-header">
@@ -228,6 +239,12 @@
                                     data-i18n="btn.post">Jogar
                                     assunto</button>
                             </div>
+                        </div>
+
+                        <!-- Bloco Compartilhar Pracinha -->
+                        <div class="sidebar-card share-site-card">
+                            <h3 class="card-title" data-i18n="share.shareTitle">Convide seus amigos!</h3>
+                            <button type="button" class="btn btn-primary btn-full" id="btn-share-site" data-i18n="share.shareBtn">Compartilhar</button>
                         </div>
 
                         <!-- Bloco Assuntos fixados -->
@@ -361,6 +378,12 @@
 
                         <div id="feed-content" class="feed-content">
                             <!-- Assuntos serão carregados aqui -->
+                        </div>
+                        <div id="feed-pagination" class="feed-pagination hidden sidebar-card">
+                            <button type="button" class="pagination-btn" id="feed-first-page" aria-label="Página mais recente">Mais recente</button>
+                            <button type="button" class="pagination-btn" id="feed-prev-page" aria-label="Página anterior">← Anterior</button>
+                            <span class="pagination-info" id="feed-page-info">1 / 1</span>
+                            <button type="button" class="pagination-btn" id="feed-next-page" aria-label="Próxima página">Próximo →</button>
                         </div>
                     </div>
 
@@ -985,10 +1008,10 @@
                     <aside class="settings-nav">
                         <h2 class="settings-title" data-i18n="btn.settings">Configurações</h2><br>
                         <nav class="settings-nav-list">
-                            <button class="settings-nav-item active" data-section="perfil">
+                            <button class="settings-nav-item active" data-section="perfil" onclick="switchSettingsSection('perfil')">
                                 <span data-i18n="settings.profile">Perfil</span>
                             </button>
-                            <button class="settings-nav-item" data-section="conta">
+                            <button class="settings-nav-item" data-section="conta" onclick="switchSettingsSection('conta')">
                                 <span data-i18n="settings.account">Conta</span>
                             </button>
                         </nav>
@@ -997,7 +1020,7 @@
                     <div class="settings-content">
 
                         <!-- Seção Perfil -->
-                        <div id="settings-section-perfil" class="settings-section hidden">
+                        <div id="settings-section-perfil" class="settings-section">
                             <h1 class="settings-section-title full-width" data-i18n="settings.profile">Perfil</h1>
                             <form id="profile-form" class="settings-form">                                
                                 
@@ -1140,17 +1163,17 @@
                                             <div class="font-group">
                                                 <label for="font-title">Apelido</label>
                                                 <select id="font-title">
-                                                    <option value="">Padrão (Google Sans)</option>
-                                                    <option value="Cherry Bomb One">Cherry Bomb One</option>
-                                                    <option value="Chicle">Chicle</option>
-                                                    <option value="Bagel Fat One">Bagel Fat One</option>
-                                                    <option value="Emblema One">Emblema One</option>
-                                                    <option value="UnifrakturMaguntia">UnifrakturMaguntia</option>
-                                                    <option value="Bitcount Prop Single">Bitcount Prop Single</option>
-                                                    <option value="Happy Monkey">Happy Monkey</option>
-                                                    <option value="Mea Culpa">Mea Culpa</option>
-                                                    <option value="Rock Salt">Rock Salt</option>
-                                                    <option value="Bangers">Bangers</option>
+                                                    <option value="" style="font-family: 'Google Sans', system-ui, -apple-system, sans-serif;">Padrão (Google Sans)</option>
+                                                    <option value="Cherry Bomb One" style="font-family: 'Cherry Bomb One', sans-serif;">Cherry Bomb One</option>
+                                                    <option value="Chicle" style="font-family: 'Chicle', sans-serif;">Chicle</option>
+                                                    <option value="Bagel Fat One" style="font-family: 'Bagel Fat One', sans-serif;">Bagel Fat One</option>
+                                                    <option value="Emblema One" style="font-family: 'Emblema One', sans-serif;">Emblema One</option>
+                                                    <option value="UnifrakturMaguntia" style="font-family: 'UnifrakturMaguntia', sans-serif;">UnifrakturMaguntia</option>
+                                                    <option value="Bitcount Prop Single" style="font-family: 'Bitcount Prop Single', sans-serif;">Bitcount Prop Single</option>
+                                                    <option value="Happy Monkey" style="font-family: 'Happy Monkey', sans-serif;">Happy Monkey</option>
+                                                    <option value="Mea Culpa" style="font-family: 'Mea Culpa', sans-serif;">Mea Culpa</option>
+                                                    <option value="Rock Salt" style="font-family: 'Rock Salt', sans-serif;">Rock Salt</option>
+                                                    <option value="Bangers" style="font-family: 'Bangers', sans-serif;">Bangers</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -1162,24 +1185,25 @@
                                         <small class="form-hint">Ajuste o tamanho do seu apelido no perfil.</small>
                                         <br><br>
 
-                                        <div class="font-group">
-                                            <label for="font-body">Texto Geral</label>
-                                            <select id="font-body">
-                                                <option value="">Padrão (Google Sans)</option>
-                                                <option value="Sour Gummy">Sour Gummy</option>
-                                                <option value="Lekton">Lekton</option>
-                                                <option value="Gamja Flower">Gamja Flower</option>
-                                                <option value="Handlee">Handlee</option>
-                                                <option value="Cinzel">Cinzel</option>
-                                                <option value="Amiri">Amiri</option>
-                                                <option value="Betania Patmos">Betania Patmos</option>
-                                                <option value="Elsie">Elsie</option>
-                                                <option value="Baloo Thambi 2">Baloo Thambi 2</option>
-                                                <option value="Comic Relief">Comic Relief</option>
-                                            </select>
+                                        <div class="font-selector">
+                                            <div class="font-group">
+                                                <label for="font-body">Texto Geral</label>
+                                                <select id="font-body">
+                                                    <option value="" style="font-family: 'Google Sans', system-ui, -apple-system, sans-serif;">Padrão (Google Sans)</option>
+                                                    <option value="Sour Gummy" style="font-family: 'Sour Gummy', sans-serif;">Sour Gummy</option>
+                                                    <option value="Lekton" style="font-family: 'Lekton', sans-serif;">Lekton</option>
+                                                    <option value="Gamja Flower" style="font-family: 'Gamja Flower', sans-serif;">Gamja Flower</option>
+                                                    <option value="Handlee" style="font-family: 'Handlee', sans-serif;">Handlee</option>
+                                                    <option value="Cinzel" style="font-family: 'Cinzel', sans-serif;">Cinzel</option>
+                                                    <option value="Amiri" style="font-family: 'Amiri', sans-serif;">Amiri</option>
+                                                    <option value="Betania Patmos" style="font-family: 'Betania Patmos', sans-serif;">Betania Patmos</option>
+                                                    <option value="Elsie" style="font-family: 'Elsie', sans-serif;">Elsie</option>
+                                                    <option value="Baloo Thambi 2" style="font-family: 'Baloo Thambi 2', sans-serif;">Baloo Thambi 2</option>
+                                                    <option value="Comic Relief" style="font-family: 'Comic Relief', sans-serif;">Comic Relief</option>
+                                                </select>
+                                            </div>
                                         </div>
 
-                                        
                                         <div class="font-size-control">
                                             <input type="range" id="body-font-size" min="11" max="15" value="13" step="1">
                                             <span id="body-font-size-value">13px</span>
@@ -1323,7 +1347,7 @@
                         </div>
                         
                         <!-- Seção Conta -->
-                        <div id="settings-section-conta" class="settings-section">
+                        <div id="settings-section-conta" class="settings-section hidden">
                             <form id="account-form" class="settings-form">
                                 <h3 class="settings-section-title" data-i18n="settings.account">Conta</h3>
                                 <div class="form-group">
@@ -2053,6 +2077,7 @@
             <button type="button" class="lightbox-nav lightbox-next" id="lightbox-next" aria-label="Próxima foto">›</button>
             <div class="lightbox-content">
                 <img src="" alt="Foto" id="lightbox-image">
+                <button type="button" class="lightbox-zoom-btn" id="lightbox-zoom-btn" title="Zoom">🔍</button>
                 <button type="button" class="lightbox-delete hidden" id="lightbox-delete" title="Apagar foto">🗑️</button>
             </div>
             <div class="lightbox-counter" id="lightbox-counter">1 / 6</div>
