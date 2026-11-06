@@ -3725,6 +3725,26 @@ textarea {
     background-color: var(--hover-color);
 }
 
+.notifications-push-toggle {
+    padding: 12px;
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    background: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+}
+
+.notifications-push-toggle:hover {
+    background-color: var(--hover-color);
+}
+
+.notifications-push-toggle:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
 .search-toggle-btn {
     background: none;
     border: none;

@@ -5831,13 +5831,13 @@ async function loadFeedWithPost(postId) {
         </div>
         <p class="assunto-text">${(function () { 
     // Processar YouTube embeds no formato [youtube:VIDEO_ID]
-    const processedTexto = texto.replace(/\[youtube:([a-zA-Z0-9_-]+)\]/g, '<div class="assunto-video-wrapper"><iframe src="https://www.youtube.com/embed/$1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>');
+    const processedTexto = texto.replace(/\[youtube:([a-zA-Z0-9_-]+)\]/g, '<div class="assunto-video-wrapper"><iframe src="https://www.youtube-nocookie.com/embed/$1" frameborder="0" allowfullscreen></iframe></div>');
     
     // Processar URLs do YouTube diretas
     const ytMatch = processedTexto.match(/(?:youtu\.be\/|youtube\.com\/watch\?v=)([^?&]+)/);
     if (ytMatch) {
         const videoId = ytMatch[1];
-        return '<div class="assunto-video-wrapper"><iframe src="https://www.youtube.com/embed/' + videoId + '" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>';
+        return '<div class="assunto-video-wrapper"><iframe src="https://www.youtube-nocookie.com/embed/' + videoId + '" frameborder="0" allowfullscreen></iframe></div>';
     }
     
     return assunto.aviso_admin ? processAdminHtml(processedTexto) : formatTextWithMentions(processedTexto); 
@@ -11378,6 +11378,7 @@ export function initHeaderElements() {
     const notificationsDropdown = document.getElementById('notifications-dropdown');
     const notificationsList = document.getElementById('notifications-list');
     const notificationsMarkRead = document.getElementById('notifications-mark-read');
+    const notificationsPushToggle = document.getElementById('notifications-push-toggle');
 
     // Remover event listener anterior se existir
     if (btnNotifications && btnNotifications._notificationHandler) {
@@ -11433,6 +11434,49 @@ export function initHeaderElements() {
             dropdown.style.display = 'none';
             dropdown.classList.remove('show');
             markAllNotificationsRead();
+        });
+    }
+
+    if (notificationsPushToggle) {
+        const syncPushToggle = async () => {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            notificationsPushToggle.textContent = t(
+                subscription ? 'notif.pushDisable' : 'notif.pushEnable',
+                currentLanguage
+            );
+            notificationsPushToggle.dataset.enabled = String(Boolean(subscription));
+        };
+
+        notificationsPushToggle.addEventListener('click', async () => {
+            notificationsPushToggle.disabled = true;
+            try {
+                const result = notificationsPushToggle.dataset.enabled === 'true'
+                    ? await window.disablePushNotifications()
+                    : await window.requestNotificationPermission();
+
+                if (!result?.success && !result?.granted) {
+                    const message = result?.error === 'not_configured'
+                        ? 'notif.pushUnavailable'
+                        : result?.error === 'denied'
+                            ? 'notif.pushBlocked'
+                            : 'notif.pushError';
+                    notificationsPushToggle.textContent = t(message, currentLanguage);
+                    return;
+                }
+
+                await syncPushToggle();
+            } catch (error) {
+                console.error('Erro ao atualizar notificações push:', error);
+                notificationsPushToggle.textContent = t('notif.pushError', currentLanguage);
+            } finally {
+                notificationsPushToggle.disabled = false;
+            }
+        });
+
+        syncPushToggle().catch((error) => {
+            console.error('Erro ao consultar inscrição push:', error);
         });
     }
 
@@ -12141,6 +12185,131 @@ function initPWAInstall() {
         if (btn) btn.classList.add('hidden');
         if (manual) manual.classList.add('hidden');
     });
+
+    // ==================== NOTIFICAÇÕES PUSH ====================
+
+    // URL base64 -> Uint8Array para VAPID
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    // Pedir permissão de notificações e inscrever no push service
+    async function requestNotificationPermission() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            console.warn('Service Worker ou Push API não suportados');
+            return { granted: false, error: 'not_supported' };
+        }
+        if (!SUPABASE_CONFIG.pushVapidPublicKey) {
+            return { granted: false, error: 'not_configured' };
+        }
+        if (!supabase || !currentUser) {
+            return { granted: false, error: 'not_signed_in' };
+        }
+
+        try {
+            const permission = Notification.permission === 'granted'
+                ? 'granted'
+                : await Notification.requestPermission();
+            if (permission !== 'granted') {
+                console.warn('Permissão de notificação não concedida:', permission);
+                return { granted: false, error: 'denied' };
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            let subscription = await registration.pushManager.getSubscription();
+            if (subscription) {
+                const { data: existingSubscription, error: existingError } = await supabase
+                    .from('push_subscriptions')
+                    .select('user_id')
+                    .eq('endpoint', subscription.endpoint)
+                    .maybeSingle();
+                if (existingError) throw existingError;
+                if (existingSubscription && existingSubscription.user_id !== currentUser.id) {
+                    await subscription.unsubscribe();
+                    subscription = null;
+                }
+            }
+            subscription = subscription
+                || await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(SUPABASE_CONFIG.pushVapidPublicKey)
+                });
+
+            const { error } = await supabase.from('push_subscriptions').upsert({
+                user_id: currentUser.id,
+                endpoint: subscription.endpoint,
+                subscription: subscription.toJSON()
+            }, { onConflict: 'endpoint' });
+            if (error) throw error;
+
+            return { granted: true, subscription };
+        } catch (error) {
+            console.error('Erro ao inscrever no push:', error);
+            return { granted: false, error: error.message };
+        }
+    }
+
+    async function disablePushNotifications() {
+        if (!('serviceWorker' in navigator) || !supabase || !currentUser) {
+            return { success: false, error: 'not_supported' };
+        }
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            if (!subscription) return { success: true };
+
+            const { error } = await supabase.from('push_subscriptions')
+                .delete()
+                .eq('user_id', currentUser.id)
+                .eq('endpoint', subscription.endpoint);
+            if (error) throw error;
+
+            await subscription.unsubscribe();
+            return { success: true };
+        } catch (error) {
+            console.error('Erro ao desativar push:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Exibir notificação local (quando app está aberto)
+    function showLocalNotification(title, options = {}) {
+        if (!('Notification' in window) || Notification.permission !== 'granted') {
+            return;
+        }
+
+        const notification = new Notification(title, {
+            body: options.body || '',
+            icon: options.icon || '/src/components/logo.webp',
+            badge: options.badge || '/src/components/logo.webp',
+            tag: options.tag || 'pracinha-local',
+            data: options.data || {},
+            requireInteraction: options.requireInteraction || false,
+            silent: options.silent || false
+        });
+
+        notification.onclick = () => {
+            window.focus();
+            if (options.data && options.data.url) {
+                window.location.hash = options.data.url;
+            }
+            notification.close();
+        };
+
+        return notification;
+    }
+
+    window.requestNotificationPermission = requestNotificationPermission;
+    window.disablePushNotifications = disablePushNotifications;
+    window.showLocalNotification = showLocalNotification;
 }
 
 window.setupMBTISection = setupMBTISection;

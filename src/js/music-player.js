@@ -429,11 +429,15 @@ function initSoundCloudWidget(soundcloudUrl, playerId = 'music-player-card') {
 
     const iframe = document.createElement('iframe');
     iframe.src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(soundcloudUrl)}&auto_play=false&show_artwork=true`;
-    iframe.width = '100%';
+    iframe.width = '300';
     iframe.height = '166';
-    iframe.style.display = 'none';
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-10000px';
+    iframe.style.visibility = 'hidden';
+    iframe.style.pointerEvents = 'none';
     iframe.id = `soundcloud-widget-${playerId}`;
-    iframe.allow = 'encrypted-media; autoplay';
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.tabIndex = -1;
     document.body.appendChild(iframe);
 
     iframe.onload = () => {
@@ -720,10 +724,10 @@ function initYouTubePlayer(url) {
     // Voltar ao iframe simples sem autoplay
     let embedUrl;
     if (playlistId) {
-        embedUrl = `https://www.youtube.com/embed/videoseries?list=${playlistId}`;
+        embedUrl = `https://www.youtube-nocookie.com/embed/videoseries?list=${playlistId}`;
         titleElement.textContent = 'Playlist YouTube';
     } else {
-        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+        embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`;
         titleElement.textContent = 'YouTube';
     }
 
@@ -732,7 +736,6 @@ function initYouTubePlayer(url) {
         width="320" 
         height="180" 
         frameborder="0" 
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
         allowfullscreen>
     </iframe>`;
 

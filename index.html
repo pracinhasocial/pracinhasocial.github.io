@@ -13,7 +13,6 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1c913f">
     <script src="https://w.soundcloud.com/player/api.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         // Sincronização pré-render para evitar piscar tema ou telas (landing vs feed)
         (function() {
@@ -2131,6 +2130,18 @@
     <script type="module" src="src/js/main.js"></script>
     <script type="module" src="src/js/music-player.js"></script>
     <script type="module" src="src/js/mbti-test.js"></script>
+    <script>
+        // Registrar Service Worker para PWA e notificações push
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then((registration) => {
+                    console.log('SW registrado com escopo:', registration.scope);
+                })
+                .catch((error) => {
+                    console.error('Falha ao registrar SW:', error);
+                });
+        }
+    </script>
 </body>
 
 </html>

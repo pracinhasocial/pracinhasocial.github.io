@@ -4,7 +4,8 @@
 export const SUPABASE_CONFIG = {
   url: 'https://mtiazjswknjqylsfrnye.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10aWF6anN3a25qcXlsc2ZybnllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MTk5NTEsImV4cCI6MjA5OTM5NTk1MX0.z4182-7QnXv_d9Y9c8dqp5AZhPTzKZldYPWDEnzhjhQ',
-  photosBucket: 'fotos'
+  photosBucket: 'fotos',
+  pushVapidPublicKey: 'BEbfbpDZXNxPXczXU0fp29U7n0Li4l4NJIBHXO4btFgPYZT4j6YYhbsvCBd6SpU9J0tjiy-2Pmgyqd-VsI8nkkk'
 };
 
 // Verificação se as credenciais estão configuradas

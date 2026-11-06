@@ -92,6 +92,8 @@ const headerHTML = `<header class="header">
                     <span data-i18n="notif.title">Notificações</span>
                 </div>
                 <div class="notifications-list" id="notifications-list"></div>
+                <button type="button" class="notifications-push-toggle" id="notifications-push-toggle"
+                    data-i18n="notif.pushEnable">Ativar notificações push</button>
                 <button type="button" class="notifications-mark-read" id="notifications-mark-read"
                     data-i18n="notif.markAllRead">Marcar todas como lidas</button>
             </div>
