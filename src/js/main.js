@@ -11461,6 +11461,8 @@ export function initHeaderElements() {
                         ? 'notif.pushUnavailable'
                         : result?.error === 'denied'
                             ? 'notif.pushBlocked'
+                            : result?.error === 'push_service_unavailable'
+                                ? 'notif.pushServiceUnavailable'
                             : 'notif.pushError';
                     notificationsPushToggle.textContent = t(message, currentLanguage);
                     return;
@@ -12109,82 +12111,73 @@ function initPWAInstall() {
     const installBar = document.getElementById('pwa-install-bar');
     const installBtn = document.getElementById('pwa-install-btn');
     const closeBtn = document.getElementById('pwa-install-close');
+    const shouldShowInstallPrompt = !localStorage.getItem('pwa-install-dismissed')
+        && !window.matchMedia('(display-mode: standalone)').matches;
 
-    // Verificar se já foi instalado
-    if (localStorage.getItem('pwa-install-dismissed')) {
-        return;
-    }
+    if (shouldShowInstallPrompt) {
+        // Detectar evento beforeinstallprompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('Evento beforeinstallprompt disparado');
+            e.preventDefault();
+            pwaDeferredPrompt = e;
 
-    // Verificar se já está instalado como PWA
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-        return;
-    }
-
-    // Detectar evento beforeinstallprompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('Evento beforeinstallprompt disparado');
-        e.preventDefault();
-        pwaDeferredPrompt = e;
-
-        // Mostrar barra de instalação
-        if (installBar) {
-            // Definir textos diretamente
-            const installText = installBar.querySelector('.pwa-install-text');
-            const installBtnText = installBar.querySelector('.pwa-install-btn');
-            if (installText) {
-                installText.textContent = t('pwa.installText', currentLanguage);
+            // Mostrar barra de instalação
+            if (installBar) {
+                const installText = installBar.querySelector('.pwa-install-text');
+                const installBtnText = installBar.querySelector('.pwa-install-btn');
+                if (installText) {
+                    installText.textContent = t('pwa.installText', currentLanguage);
+                }
+                if (installBtnText) {
+                    installBtnText.textContent = t('pwa.installBtn', currentLanguage);
+                }
+                installBar.classList.remove('hidden');
+                console.log('Barra de instalação mostrada');
             }
-            if (installBtnText) {
-                installBtnText.textContent = t('pwa.installBtn', currentLanguage);
-            }
-            installBar.classList.remove('hidden');
-            console.log('Barra de instalação mostrada');
+        });
+
+        // Botão de instalação (barra superior)
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                console.log('Botão de instalação clicado');
+                await window.installPWA();
+            });
         }
-    });
 
-    // Botão de instalação (barra superior)
-    if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-            console.log('Botão de instalação clicado');
-            await window.installPWA();
-        });
-    }
+        // Botão de instalação fixo na página de configurações
+        const btnInstallPwaSettings = document.getElementById('btn-install-pwa-settings');
+        const pwaInstallManual = document.getElementById('pwa-install-manual');
+        if (btnInstallPwaSettings) {
+            btnInstallPwaSettings.addEventListener('click', async () => {
+                const installed = await window.installPWA();
+                if (!installed && pwaInstallManual) {
+                    btnInstallPwaSettings.classList.add('hidden');
+                    pwaInstallManual.classList.remove('hidden');
+                }
+            });
+        }
 
-    // Botão de instalação fixo na página de configurações
-    const btnInstallPwaSettings = document.getElementById('btn-install-pwa-settings');
-    const pwaInstallManual = document.getElementById('pwa-install-manual');
-    if (btnInstallPwaSettings) {
-        btnInstallPwaSettings.addEventListener('click', async () => {
-            const installed = await window.installPWA();
-            if (!installed && pwaInstallManual) {
-                // Sem prompt nativo disponível (ex: iOS) - mostrar instruções manuais
-                btnInstallPwaSettings.classList.add('hidden');
-                pwaInstallManual.classList.remove('hidden');
-            }
-        });
-    }
+        // Botão de fechar barra
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                if (installBar) {
+                    installBar.classList.add('hidden');
+                }
+                localStorage.setItem('pwa-install-dismissed', 'true');
+            });
+        }
 
-    // Botão de fechar barra
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
+        // Esconder barra e instruções manuais se já estiver instalado
+        window.addEventListener('appinstalled', () => {
             if (installBar) {
                 installBar.classList.add('hidden');
             }
-            // Lembrar que usuário fechou
-            localStorage.setItem('pwa-install-dismissed', 'true');
+            const btn = document.getElementById('btn-install-pwa-settings');
+            const manual = document.getElementById('pwa-install-manual');
+            if (btn) btn.classList.add('hidden');
+            if (manual) manual.classList.add('hidden');
         });
     }
-
-    // Esconder barra e instruções manuais se já estiver instalado
-    window.addEventListener('appinstalled', () => {
-        if (installBar) {
-            installBar.classList.add('hidden');
-        }
-        const btn = document.getElementById('btn-install-pwa-settings');
-        const manual = document.getElementById('pwa-install-manual');
-        if (btn) btn.classList.add('hidden');
-        if (manual) manual.classList.add('hidden');
-    });
 
     // ==================== NOTIFICAÇÕES PUSH ====================
 
@@ -12252,7 +12245,10 @@ function initPWAInstall() {
             return { granted: true, subscription };
         } catch (error) {
             console.error('Erro ao inscrever no push:', error);
-            return { granted: false, error: error.message };
+            return {
+                granted: false,
+                error: error.name === 'AbortError' ? 'push_service_unavailable' : error.message
+            };
         }
     }
 
