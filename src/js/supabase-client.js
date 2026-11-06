@@ -406,13 +406,14 @@ export async function getStatusReactions(statusId) {
 
 export async function toggleStatusReaction(statusId, autorId, emoji = '❤️') {
   // Verificar se já reagiu
-  const { data: existing } = await supabase
+  const { data: existing, error: fetchError } = await supabase
     .from('status_reactions')
     .select('*')
     .eq('status_id', statusId)
     .eq('autor', autorId)
     .eq('emoji', emoji)
     .maybeSingle();
+  if (fetchError) throw fetchError;
 
   if (existing) {
     // Remover
@@ -420,7 +421,7 @@ export async function toggleStatusReaction(statusId, autorId, emoji = '❤️') 
       .from('status_reactions')
       .delete()
       .eq('id', existing.id);
-    if (error) console.error('Erro ao remover reação:', error);
+    if (error) throw error;
     return { added: false };
   } else {
     // Adicionar
@@ -433,7 +434,7 @@ export async function toggleStatusReaction(statusId, autorId, emoji = '❤️') 
       })
       .select()
       .single();
-    if (error) console.error('Erro ao adicionar reação:', error);
+    if (error) throw error;
     return { added: true, data };
   }
 }

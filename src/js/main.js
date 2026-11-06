@@ -6017,6 +6017,13 @@ async function loadFeedWithPost(postId) {
     }
 
     try {
+        if (itemType === 'status') {
+            if (!toggleStatusReaction) throw new Error('Reações de status não estão disponíveis.');
+            await toggleStatusReaction(itemId, currentUser.id, emoji);
+            await reloadCurrentFeed();
+            return;
+        }
+
         const columnName = itemType === 'status' ? 'status' : 'assunto';
 
         const { data: existing, error: fetchError } = await supabase
@@ -11442,10 +11449,9 @@ export function initHeaderElements() {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
-            notificationsPushToggle.textContent = t(
-                subscription ? 'notif.pushDisable' : 'notif.pushEnable',
-                currentLanguage
-            );
+            const labelKey = subscription ? 'notif.pushDisable' : 'notif.pushEnable';
+            notificationsPushToggle.setAttribute('data-i18n', labelKey);
+            notificationsPushToggle.textContent = t(labelKey, currentLanguage);
             notificationsPushToggle.dataset.enabled = String(Boolean(subscription));
         };
 
@@ -11464,6 +11470,7 @@ export function initHeaderElements() {
                             : result?.error === 'push_service_unavailable'
                                 ? 'notif.pushServiceUnavailable'
                             : 'notif.pushError';
+                    notificationsPushToggle.setAttribute('data-i18n', message);
                     notificationsPushToggle.textContent = t(message, currentLanguage);
                     return;
                 }
@@ -11471,6 +11478,7 @@ export function initHeaderElements() {
                 await syncPushToggle();
             } catch (error) {
                 console.error('Erro ao atualizar notificações push:', error);
+                notificationsPushToggle.setAttribute('data-i18n', 'notif.pushError');
                 notificationsPushToggle.textContent = t('notif.pushError', currentLanguage);
             } finally {
                 notificationsPushToggle.disabled = false;
